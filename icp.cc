@@ -1,8 +1,13 @@
 #include <array>
 #include <cmath>
 #include <vector>
+#include <tuple>
 #include <iostream>
+#include <limits>
 
+
+typedef std::array<float, 3> Point3D;
+typedef std::vector<std::tuple<std::size_t, std::size_t>> Correspondences;
 typedef std::array<std::array<float, 3>, 3> MAT3x3;
 typedef std::array<std::array<float, 6>, 3> MAT3x6;
 
@@ -97,4 +102,40 @@ std::array<MAT3x6, 3> icp::get_jacobian(std::vector<float> x, std::vector<float>
     }
     std::array<MAT3x6, 3> jacobians {jacobianx, jacobiany, jacobianz};
     return jacobians;
+}
+
+float norm(Point3D p) {
+    float r = 0;
+    for (int i = 0; i < 3; i++) {
+        r += p[i]*p[i];
+    }
+    return std::sqrt(r);
+}
+
+Point3D operator- (const Point3D& first, const Point3D& second){
+    Point3D res;
+    for (int i = 0; i < 3; i++){
+        res[i] = first[i] - second[i];
+    }
+    return res;
+}
+
+// For each point in P find closest one in Q.
+Correspondences get_correspondence_indices(std::vector<Point3D> P, std::vector<Point3D> Q) {;
+    Correspondences correspondences;
+    for (std::size_t i = 0; i < P.size(); i++) {
+        auto p_point = P[i];
+        auto min_dist = std::numeric_limits<float>::max();
+        int chosen_idx = -1;
+        for (std::size_t j = 0; j < Q.size(); j++) {
+            auto q_point = Q[j];
+            auto dist = norm(p_point - q_point);
+            if (dist < min_dist){
+                min_dist = dist;
+                chosen_idx = j;
+            }
+        }
+        correspondences.push_back(std::tuple{i, chosen_idx});
+    }
+    return correspondences;
 }
