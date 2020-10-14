@@ -3,6 +3,10 @@
 #include <vector>
 #include <iostream>
 
+typedef std::array<std::array<float, 3>, 3> MAT3x3;
+typedef std::array<std::array<float, 6>, 3> MAT3x6;
+
+
 class icp
 {
 public:
@@ -13,7 +17,7 @@ private:
 
     std::array<MAT3x3, 3> get_r(float theta);
     std::array<MAT3x3, 3> get_dr(float theta);
-    std::vector<std::vector<float> > get_jacobian(std::vector<float> x, std::vector<float> p_point);
+    std::array<MAT3x6, 3> get_jacobian(std::vector<float> x, std::vector<float> p_point);
 };
 
 icp::icp(int n_dim)
@@ -25,8 +29,6 @@ icp::icp(int n_dim)
     this->_n_dim = n_dim;
 }
 
-typedef std::array<std::array<float, 3>, 3>type MAT3x3;
-typedef std::array<std::array<float, 3>, 6>type MAT3x6;
 
 std::array<MAT3x3, 3> icp::get_r(float theta) {
     MAT3x3 rx{{
@@ -68,11 +70,23 @@ std::array<MAT3x3, 3> icp::get_dr(float theta) {
     return res;
 }
 
-std::vector<std::vector<float> > icp::get_jacobian(std::vector<float> x, std::vector<float> p_point) {
+std::array<MAT3x6, 3> icp::get_jacobian(std::vector<float> x, std::vector<float> p_point) {
     float theta = x[2];
-    MAT3x6 jacobianx{{{1, 0, 0, 0, 0, 0}, {0, 1, 0, 0, 0, 0}, {0, 0, 1, 0, 0, 0}}};
-    MAT3x6 jacobiany{{{1, 0, 0, 0, 0, 0}, {0, 1, 0, 0, 0, 0}, {0, 0, 1, 0, 0, 0}}};
-    MAT3x6 jacobianz{{{1, 0, 0, 0, 0, 0}, {0, 1, 0, 0, 0, 0}, {0, 0, 1, 0, 0, 0}}};
+    MAT3x6 jacobianx{{
+                        {1, 0, 0, 0, 0, 0},
+                        {0, 1, 0, 0, 0, 0},
+                        {0, 0, 1, 0, 0, 0}
+                    }};
+    MAT3x6 jacobiany{{
+                        {1, 0, 0, 0, 0, 0},
+                        {0, 1, 0, 0, 0, 0},
+                        {0, 0, 1, 0, 0, 0}
+                    }};
+    MAT3x6 jacobianz{{
+                        {1, 0, 0, 0, 0, 0},
+                        {0, 1, 0, 0, 0, 0},
+                        {0, 0, 1, 0, 0, 0}
+                    }};
     auto dr = this->get_dr(theta);
     for (int i = 0; i < 3; i++) {
         for (int k = 0; k < 3; k++) {
@@ -82,5 +96,5 @@ std::vector<std::vector<float> > icp::get_jacobian(std::vector<float> x, std::ve
         }
     }
     std::array<MAT3x6, 3> jacobians {jacobianx, jacobiany, jacobianz};
-    return jacobian;
+    return jacobians;
 }
