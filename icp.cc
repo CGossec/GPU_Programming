@@ -125,7 +125,66 @@ Correspondences get_correspondence_indices(std::vector<Point3D> P, std::vector<P
     return correspondences;
 }
 
-/*
+MAT3x3 dot_transpose(MAT3x6 mat) {
+    auto first_line = mat.at(0);
+    auto second_line = mat.at(1);
+    auto third_line = mat.at(2);
+
+    MAT3x3 ret{{
+        {0,0,0},
+        {0,0,0},
+        {0,0,0},
+    }};
+    int set_index = 0;
+    int i = 0;
+    for (auto elem : first_line) {
+        ret[0][0] += elem * first_line.at(i++);
+        ret[0][1] += elem * second_line.at(i++);
+        ret[0][2] += elem * third_line.at(i++);
+    }
+    for (auto elem : second_line) {
+        ret[1][0] += elem * first_line.at(i++);
+        ret[1][1] += elem * second_line.at(i++);
+        ret[1][2] += elem * third_line.at(i++);
+    }
+    for (auto elem : third_line) {
+        ret[2][0] += elem * first_line.at(i++);
+        ret[2][1] += elem * second_line.at(i++);
+        ret[2][2] += elem * third_line.at(i++);
+    }
+
+    return ret;
+}
+
+MAT6x3 transpose(MAT3x6 mat) {
+    auto first_line = mat.at(0);
+    auto second_line = mat.at(1);
+    auto third_line = mat.at(2);
+    return MAT6x3{{
+        {first_line.at(0), second_line.at(0), third_line.at(0)},
+        {first_line.at(1), second_line.at(1), third_line.at(1)},
+        {first_line.at(2), second_line.at(2), third_line.at(2)},
+        {first_line.at(3), second_line.at(3), third_line.at(3)},
+        {first_line.at(4), second_line.at(4), third_line.at(4)},
+        {first_line.at(5), second_line.at(5), third_line.at(5)},
+    }};
+}
+
+MAT3x3 add(MAT3x3 m1, MAT3x3 m2) {
+    MAT3x3 ret{{
+        {0,0,0},
+        {0,0,0},
+        {0,0,0},
+    }};
+    for (int i = 0; i < m1.size(); i++) {
+        for (int j = 0; j < m1.at(0).size(); j++) {
+            ret[i][j] = m1.at(i).at(j) + m2.at(i).at(j);
+        }
+    }
+
+    return ret;
+}
+
 float icp::err(std::vector<float> x, Point3D p_point, Point3D q_point){
     auto rotation = this->get_r(x[2]);
     auto translation = x[0:2];
@@ -154,7 +213,12 @@ void icp::prepare_system(Point3D x, std::vector<Point3D> P, std::vector<Point3D>
     std::array<float, 3> g3 = {{0,0,0}};
     float chi =0;
     for (auto elm : corr){
-        auto p_point = std::at<0>(elm);
-        auto q_point = std::at<1>(elm);
+        auto p_point = P.at(std::get<0>(elm));
+        auto q_point = Q.at(std::get<1>(elm));
+        auto e = this->err(x, p_point, q_point);
+        auto J = this->get_jacobian(x, p_point);
+        h1 = add(h1, dot_transpose(J.at(0)));
+        h2 = add(h2, dot_transpose(J.at(1)));
+        h3 = add(h3, dot_transpose(J.at(2)));
     }
-}*/
+}
