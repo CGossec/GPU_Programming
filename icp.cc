@@ -1,5 +1,4 @@
 #include "icp.hh"
-#include "matrices.hh"
 
 icp::icp(int n_dim)
 {
@@ -82,10 +81,10 @@ std::array<Mat, 3> icp::get_jacobian(Mat x, Mat p_point) {
 
 
 
-float norm(Point3D p) {
+float norm(Mat p) {
     float r = 0;
     for (int i = 0; i < 3; i++) {
-        r += p[i]*p[i];
+        r += p[0][i] * p[0][i];
     }
     return std::sqrt(r);
 }
@@ -93,11 +92,11 @@ float norm(Point3D p) {
 // For each point in P find closest one in Q.
 Correspondences get_correspondence_indices(Mat P, Mat Q) {;
     Correspondences correspondences;
-    for (std::size_t i = 0; i < P.m_height; i++) {
+    for (int i = 0; i < P.m_height; i++) {
         auto p_point = Mat({P[i]});
         auto min_dist = std::numeric_limits<float>::max();
         int chosen_idx = -1;
-        for (std::size_t j = 0; j < Q.m_height; j++) {
+        for (int j = 0; j < Q.m_height; j++) {
             Mat q_point = Mat({Q[j]});
             auto distance_coords = p_point - q_point;
             auto dist = norm(distance_coords);
@@ -111,43 +110,37 @@ Correspondences get_correspondence_indices(Mat P, Mat Q) {;
     return correspondences;
 }
 
-float icp::err(Mat x, Mat p_point, Mat q_point){
+Mat icp::err(Mat x, Mat p_point, Mat q_point){
     auto rotation = this->get_r(x[0][2]);
-    auto translation = x[0];
-    auto prediction = rotation.dot(p_point) + translation;
+    auto translation = Mat({x[0]});
+    auto prediction = rotation[0].dot(rotation[1].dot(rotation[2].dot(p_point))) + translation;
     return prediction - q_point;
 }
 
-void icp::prepare_system(Point3D x, std::vector<Point3D> P, std::vector<Point3D> Q, Correspondences corr){
-    MAT3x3 h1 = {{
-                         {0,0,0},
-                         {0,0,0},
-                         {0,0,0},
-                 }};
-    MAT3x3 h2 = {{
-                         {0,0,0},
-                         {0,0,0},
-                         {0,0,0},
-                 }};
-    MAT3x3 h3 = {{
-                         {0,0,0},
-                         {0,0,0},
-                         {0,0,0},
-                 }};
-    std::array<float, 3> g1 = {{0,0,0}};
-    std::array<float, 3> g2 = {{0,0,0}};
-    std::array<float, 3> g3 = {{0,0,0}};
-    float chi =0;
+std::tuple<std::array<Mat,3>,std::array<Mat,3>,float>
+icp::prepare_system(Mat x, Mat P, Mat Q, Correspondences corr){
+    Mat h1 = Mat(3,3);
+    Mat h2 = Mat(3,3);
+    Mat h3 = Mat(3,3);
+    Mat g1 = Mat(1,3);
+    Mat g2 = Mat(1,3);
+    Mat g3 = Mat(1,3);
+    float chi = 0;
     for (auto elm : corr){
-        auto p_point = P.at(std::get<0>(elm));
-        auto q_point = Q.at(std::get<1>(elm));
+        Mat p_point = Mat({P[std::get<0>(elm)]});
+        Mat q_point = Mat({Q[std::get<1>(elm)]});
         auto e = this->err(x, p_point, q_point);
         auto J = this->get_jacobian(x, p_point);
-        h1 = h1 + dot_transpose(J.at(0));
-        h2 = h2 + dot_transpose(J.at(1));
-        h3 = h3 + dot_transpose(J.at(2));
-        g1 = g1 + transpose(J.at(0));
-        g2 = g2 + transpose(J.at(1));
-        g3 = g3 + transpose(J.at(2));
+        h1 = h1 + J[0].dot(J[0].T());
+        h2 = h2 + J[1].dot(J[1].T());
+        h3 = h3 + J[2].dot(J[2].T());
+        g1 = g1 + J[0].dot(e);
+        g2 = g2 + J[1].dot(e);
+        g3 = g3 + J[2].dot(e);
+        chi += e.dot(e.T())[0][0];
     }
+    std::array<Mat, 3> H = {h1, h2, h3};
+    std::array<Mat, 3> G = {g1, g2, g3};
+    auto res = std::tuple<std::array<Mat,3>,std::array<Mat,3>,float>({H,G,chi});
+    return res;
 }

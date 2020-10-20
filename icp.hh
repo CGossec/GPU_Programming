@@ -8,6 +8,7 @@
 #include <tuple>
 #include <iostream>
 #include <limits>
+#include "matrices.hh"
 
 typedef std::vector<std::tuple<std::size_t, std::size_t>> Correspondences;
 
@@ -22,8 +23,11 @@ private:
     std::array<Mat, 3> get_r(float theta);
     std::array<Mat, 3> get_dr(float theta);
     std::array<Mat, 3> get_jacobian(Mat, Mat);
-    void prepare_system(Mat x, Mat P, Mat Q, Correspondences corr);
-    float err(Mat x, Mat p_point, Mat q_point);
+    std::tuple<std::array<Mat,3>,std::array<Mat,3>,float> prepare_system(Mat x,
+                                                                        Mat P,
+                                                                        Mat Q,
+                                                                        Correspondences corr);
+    Mat err(Mat x, Mat p_point, Mat q_point);
 };
 Correspondences get_correspondence_indices(Mat P, Mat Q);
 

@@ -30,7 +30,7 @@ Mat::Mat(std::vector<std::vector<float>>&& list_init){
     auto height = list_init.size();
     auto width = list_init[0].size();
 
-    for (int i = 0; i < height; ++i)
+    for (std::size_t i = 0; i < height; ++i)
         if (list_init[i].size() != width)
             throw "Invalid list initialization, internal vectors were not of same width.";
     
