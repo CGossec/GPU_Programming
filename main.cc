@@ -4,6 +4,7 @@
 #include <cstring>
 #include <sstream>
 #include <iostream>
+#include "matrices.hh"
 #include "icp.hh"
 
 std::vector<std::array<float, 3> > parse_file(std::ifstream &file) {
@@ -48,5 +49,6 @@ int main(int argc, char const *argv[])
     for (auto coord : get_correspondence_indices(test, ref)) {
         std::cout << std::get<0>(coord) << "," << std::get<1>(coord) << '\n';
     }
+
     return 0;
 }
