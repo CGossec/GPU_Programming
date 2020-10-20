@@ -120,10 +120,11 @@ Correspondences get_correspondence_indices(std::vector<Point3D> P, std::vector<P
                 chosen_idx = j;
             }
         }
-        correspondences.push_back(std::tuple{i, chosen_idx});
+        correspondences.push_back(std::tuple<std::size_t, std::size_t>{i, chosen_idx});
     }
     return correspondences;
 }
+
 /*
 float icp::err(std::vector<float> x, Point3D p_point, Point3D q_point){
     auto rotation = this->get_r(x[2]);
