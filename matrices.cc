@@ -120,13 +120,16 @@ Mat Mat::operator*(const float& factor){
 }
 
 void Mat::print(){
-    std::cout << "{";
-    for (int i = 0; i < this->m_height; i++) {
-        std::cout << "{ ";
-        for (int j = 0; j < this->m_width; j++, std::cout << ", ") {
+    std::cout << "{\n";
+    for (int i = 0; i < this->m_height; ++i) {
+        std::cout << "  { ";
+        for (int j = 0; j < this->m_width;) {
             std::cout << this->m_buffer[i][j];
+            if (++j < this->m_width)
+                std::cout << ", ";
         }
-        std::cout << "}\n";
+        std::cout << " }\n";
     }
     std::cout << "}\n";
 }
+//{ { 1}}
