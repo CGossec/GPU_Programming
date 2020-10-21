@@ -10,7 +10,7 @@ icp::icp(int n_dim)
 }
 
 
-std::array<Mat, 3> icp::get_r(float theta) {
+std::array<Mat, 3> icp::get_r(const float theta) const {
     Mat rx{{
                       {1, 0, 0},
                       {0, std::cos(theta), -std::sin(theta)},
@@ -30,7 +30,7 @@ std::array<Mat, 3> icp::get_r(float theta) {
     return res;
 }
 
-std::array<Mat, 3> icp::get_dr(float theta) {
+std::array<Mat, 3> icp::get_dr(const float theta) const {
     Mat rx{{
                       {0, 0, 0},
                       {0, -std::sin(theta), -std::cos(theta)},
@@ -50,7 +50,7 @@ std::array<Mat, 3> icp::get_dr(float theta) {
     return res;
 }
 
-std::array<Mat, 3> icp::get_jacobian(Mat x, Mat p_point) {
+std::array<Mat, 3> icp::get_jacobian(const Mat& x, const Mat& p_point) const {
     float theta = x[0][2];
     Mat jacobianx{{
                         {1, 0, 0, 0, 0, 0},
@@ -90,7 +90,7 @@ float norm(Mat p) {
 }
 
 // For each point in P find closest one in Q.
-Correspondences get_correspondence_indices(Mat P, Mat Q) {;
+Correspondences get_correspondence_indices(Mat& P, Mat& Q) {
     Correspondences correspondences;
     for (int i = 0; i < P.m_height; i++) {
         auto p_point = Mat({P[i]});
@@ -110,22 +110,21 @@ Correspondences get_correspondence_indices(Mat P, Mat Q) {;
     return correspondences;
 }
 
-Mat icp::err(Mat x, Mat p_point, Mat q_point){
+Mat icp::err(const Mat& x, const Mat& p_point, const Mat& q_point) const {
     auto rotation = this->get_r(x[0][2]);
     auto translation = Mat({x[0]});
     auto prediction = rotation[0].dot(rotation[1].dot(rotation[2].dot(p_point))) + translation;
     return prediction - q_point;
 }
 
-std::tuple<std::array<Mat,3>,std::array<Mat,3>,float>
-icp::prepare_system(Mat x, Mat P, Mat Q, Correspondences corr){
+icp::prep_sys_t icp::prepare_system(Mat& x, Mat& P, Mat& Q, Correspondences& corr) const {
     Mat h1 = Mat(3,3);
     Mat h2 = Mat(3,3);
     Mat h3 = Mat(3,3);
     Mat g1 = Mat(1,3);
     Mat g2 = Mat(1,3);
     Mat g3 = Mat(1,3);
-    float chi = 0;
+    Mat chi = Mat(3,3);
     for (auto elm : corr){
         Mat p_point = Mat({P[std::get<0>(elm)]});
         Mat q_point = Mat({Q[std::get<1>(elm)]});
@@ -137,10 +136,60 @@ icp::prepare_system(Mat x, Mat P, Mat Q, Correspondences corr){
         g1 = g1 + J[0].dot(e);
         g2 = g2 + J[1].dot(e);
         g3 = g3 + J[2].dot(e);
-        chi += e.dot(e.T())[0][0];
+        //chi += e * e.T();
     }
     std::array<Mat, 3> H = {h1, h2, h3};
     std::array<Mat, 3> G = {g1, g2, g3};
-    auto res = std::tuple<std::array<Mat,3>,std::array<Mat,3>,float>({H,G,chi});
+    auto res = std::tuple<std::array<Mat,3>,std::array<Mat,3>,Mat>{H,G,chi};
     return res;
 }
+/*
+void icp::icp_least_squares(Mat P, Mat Q){
+    int iterations = 30;
+    auto x = Mat(1,4); // 3D point + angle?
+    std::vector<Mat> chi_values;
+    std::vector<Mat> x_values = {x.copy()};
+    std::vector<Mat> P_values = {P.copy()};
+    auto P_copy = P.copy();
+    std::vector<Correspondences> corresp_values;
+    for (int i = 0; i < iterations; ++i){
+        auto rot = get_r(x[0][3]);
+        std::vector<float> x_coords = {x[0][0], x[0][1], x[0][2]};
+        auto correspondences = get_correspondence_indices(P_copy, Q);
+        corresp_values.push_back(correspondences);
+        auto prep_sys = prepare_system(x, P, Q, correspondences);
+        auto H = std::get<0>(prep_sys);
+        auto G = std::get<1>(prep_sys);
+        auto chi = std::get<2>(prep_sys);
+        auto dx = np.linalg.lstsq(H, -g, rcond=None)[0]; //FIXME hahahahahahahaha
+        x += dx;
+        x[0][3] = atan2(sin(x[0][3]), cos(x[0][3]));
+        chi_values.push_back(chi[0][0])
+    }
+}
+
+def icp_least_squares(P, Q, iterations=30, kernel=lambda distance: 1.0):
+    x = np.zeros((3, 1))
+    chi_values = []
+    x_values = [x.copy()]  # Initial value for transformation.
+    P_values = [P.copy()]
+    P_copy = P.copy()
+    corresp_values = []
+    for i in range(iterations):
+        rot = R(x[2])
+        t = x[0:2]
+        correspondences = get_correspondence_indices(P_copy, Q)
+        corresp_values.append(correspondences)
+        H, g, chi = prepare_system(x, P, Q, correspondences, kernel)
+        dx = np.linalg.lstsq(H, -g, rcond=None)[0]
+        x += dx
+        x[2] = atan2(sin(x[2]), cos(x[2])) # normalize angle
+        chi_values.append(chi.item(0))
+        x_values.append(x.copy())
+        rot = R(x[2])
+        t = x[0:2]
+        P_copy = rot.dot(P.copy()) + t
+        P_values.append(P_copy)
+    corresp_values.append(corresp_values[-1])
+    return P_values, chi_values, corresp_values
+*/

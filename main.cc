@@ -32,6 +32,7 @@ Mat parse_file(std::ifstream &file) {
 
 int main(int argc, char const *argv[])
 {
+    /*
     if (argc != 3) {
         std::cerr << "file must be given as argument\n";
         return 1;
@@ -48,6 +49,12 @@ int main(int argc, char const *argv[])
     for (auto coord : get_correspondence_indices(test, ref)) {
         std::cout << std::get<0>(coord) << "," << std::get<1>(coord) << '\n';
     }
-
+    */
+    Mat first = {{{1,2,3}}};
+    Mat second = {{{1}, {2}, {3}}};
+    auto third = first.dot(second);
+    third.print();
+    third = first * second;
+    third.print();
     return 0;
 }

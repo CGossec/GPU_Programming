@@ -17,8 +17,10 @@ struct Mat
     Mat operator+(const Mat&);
     Mat operator-(const Mat&);
     Mat operator*(const float&);
+    Mat operator*(const Mat&);
 
-    void print();
+    void print() const;
+    Mat copy() const;
 
     int m_height;
     int m_width;

@@ -20,15 +20,15 @@ public:
 private:
     int _n_dim;
 
-    std::array<Mat, 3> get_r(float theta);
-    std::array<Mat, 3> get_dr(float theta);
-    std::array<Mat, 3> get_jacobian(Mat, Mat);
-    std::tuple<std::array<Mat,3>,std::array<Mat,3>,float> prepare_system(Mat x,
-                                                                        Mat P,
-                                                                        Mat Q,
-                                                                        Correspondences corr);
-    Mat err(Mat x, Mat p_point, Mat q_point);
+    using prep_sys_t = std::tuple<std::array<Mat,3>,std::array<Mat,3>,Mat>;
+
+    std::array<Mat, 3> get_r(const float theta) const;
+    std::array<Mat, 3> get_dr(const float theta) const;
+    std::array<Mat, 3> get_jacobian(const Mat&, const Mat&) const;
+    Mat err(const Mat& x, const Mat& p_point, const Mat& q_point) const;
+    prep_sys_t prepare_system(Mat& x, Mat& P, Mat& Q, Correspondences& corr) const;
+    void icp_least_squares(Mat&, Mat&);
 };
-Correspondences get_correspondence_indices(Mat P, Mat Q);
+Correspondences get_correspondence_indices(Mat& P, Mat& Q);
 
 #endif //GPGPU_ICP_H

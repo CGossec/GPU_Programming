@@ -119,7 +119,27 @@ Mat Mat::operator*(const float& factor){
     return ret;
 }
 
-void Mat::print(){
+Mat Mat::operator*(const Mat& other){
+    /**
+     * Trying to replicate numpy broadcasting 
+     * https://numpy.org/doc/stable/user/basics.broadcasting.html
+     * TODO
+     */
+    //auto ret_h = max(this->m_height, other.m_height);
+    //auto ret_w = max(this->m_width, other.m_width);
+    //Mat ret = Mat(ret_h, ret_w);
+
+    //for (int i = 0; i < this->m_height; ++i) {
+    //    for (int j = 0; j < this->m_width; ++j){
+    //            ret.m_buffer[i][j] += this->m_buffer[i][k] * other.m_buffer[k][j];
+    //        }
+    //    }
+    //}
+    //return ret;
+    return Mat(1,1,-1);
+}
+
+void Mat::print() const {
     std::cout << "{\n";
     for (int i = 0; i < this->m_height; ++i) {
         std::cout << "  { ";
@@ -132,4 +152,11 @@ void Mat::print(){
     }
     std::cout << "}\n";
 }
-//{ { 1}}
+
+Mat Mat::copy() const {
+    Mat res = Mat(this->m_height, this->m_width);
+    for (int h = 0; h < this->m_height; ++h)
+        for (int w = 0; w < this->m_width; ++w)
+            res.m_buffer[h][w] = this->m_buffer[h][w];
+    return res;
+}
