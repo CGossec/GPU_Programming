@@ -125,18 +125,21 @@ Mat Mat::operator*(const Mat& other){
      * https://numpy.org/doc/stable/user/basics.broadcasting.html
      * TODO
      */
-    //auto ret_h = max(this->m_height, other.m_height);
-    //auto ret_w = max(this->m_width, other.m_width);
-    //Mat ret = Mat(ret_h, ret_w);
+    if (this->m_height != 1 || other.m_width != 1){
+        printf("Could not broadcast matrices, dimensions do not match {%i, %i} vs {%i, %i}",
+               this->m_height, this->m_width, other.m_height, other.m_width);
+        throw "Invalid broadcast";
+    }
+    auto ret_h = std::max(this->m_height, other.m_height);
+    auto ret_w = std::max(this->m_width, other.m_width);
+    Mat ret = Mat(ret_h, ret_w);
 
-    //for (int i = 0; i < this->m_height; ++i) {
-    //    for (int j = 0; j < this->m_width; ++j){
-    //            ret.m_buffer[i][j] += this->m_buffer[i][k] * other.m_buffer[k][j];
-    //        }
-    //    }
-    //}
-    //return ret;
-    return Mat(1,1,-1);
+    for (int i = 0; i < ret_h; ++i) {
+        for (int j = 0; j < ret_w; ++j){
+                ret.m_buffer[i][j] += this->m_buffer[0][i] * other.m_buffer[j][0];
+        }
+    }
+    return ret;
 }
 
 void Mat::print() const {
