@@ -11,14 +11,14 @@
 
 typedef std::vector<std::tuple<std::size_t, std::size_t>> Correspondences;
 
-class icp_matlab
+class ICP_matlab
 {
 public:
-    icp(int n_dim);
-    ~icp();
+    ICP_matlab (Mat M, Mat P);
+    ~ICP_matlab();
 private:
+    Mat get_correspondence_indices(Mat& P, Mat& Q);
 };
 
-Correspondences get_correspondence_indices(Mat& P, Mat& Q);
 
 #endif //GPGPU_ICP_H
