@@ -33,9 +33,8 @@ Mat parse_file(std::ifstream &file) {
 
 int main(int argc, char const *argv[])
 {
-    /*
     if (argc != 3) {
-        std::cerr << "file must be given as argument\n";
+        std::cerr << "Usage: " << argv[0] << " path/to/test/file path/to/model/file";
         return 1;
     }
     std::ifstream file1(argv[1]);
@@ -47,10 +46,8 @@ int main(int argc, char const *argv[])
     Mat test = parse_file(file1);
     Mat ref = parse_file(file2);
 
-    for (auto coord : get_correspondence_indices(test, ref)) {
-        std::cout << std::get<0>(coord) << "," << std::get<1>(coord) << '\n';
-    }
-    */
+    ICP_matlab res(ref, test);
+    /*
     Mat first = {{{1,2,3}, {7,4,5}, {11,22,33}}};
     first.print();
     auto eig = first.eigen();
@@ -61,5 +58,6 @@ int main(int argc, char const *argv[])
             std::cout << std::get<1>(tup)[i] << " ";
         std::cout << "\n\n";
     }
+    */
     return 0;
 }
