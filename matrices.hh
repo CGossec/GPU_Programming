@@ -21,10 +21,10 @@ struct Mat
 
     std::vector<float> operator[](const int pos) const;
     std::vector<float>& operator[](const int pos);
-    Mat operator+(const Mat&);
-    Mat operator-(const Mat&);
-    Mat operator*(const float&);
-    Mat operator*(const Mat&);
+    Mat operator+(const Mat&) const;
+    Mat operator-(const Mat&) const;
+    Mat operator*(const float&) const;
+    Mat operator*(const Mat&) const;
 
     void print() const;
     Mat copy() const;

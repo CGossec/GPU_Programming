@@ -108,7 +108,7 @@ std::vector<float>& Mat::operator[](const int pos) {
     return this->m_buffer[pos];
 }
 
-Mat Mat::operator+(const Mat& other){
+Mat Mat::operator+(const Mat& other) const{
     if (this->m_height != other.m_height || this->m_width != other.m_width)
     {
         printf("Could not add matrices, dimensions do not match {%i, %i} vs {%i, %i}",
@@ -126,7 +126,7 @@ Mat Mat::operator+(const Mat& other){
     return ret;
 }
 
-Mat Mat::operator-(const Mat& other){
+Mat Mat::operator-(const Mat& other) const{
     if ((this->m_width != other.m_width) || (m_height != other.m_height && other.m_height != 1))
     {
         printf("Could not subtract matrices, dimensions do not match {%i, %i} vs {%i, %i}",
@@ -155,7 +155,7 @@ Mat Mat::operator-(const Mat& other){
     return ret;
 }
 
-Mat Mat::operator*(const float& factor){
+Mat Mat::operator*(const float& factor) const{
     Mat ret = Mat(this->m_height, this->m_width);
 
     for (int i = 0; i < this->m_height; i++) {
@@ -167,7 +167,7 @@ Mat Mat::operator*(const float& factor){
     return ret;
 }
 
-Mat Mat::operator*(const Mat& other){
+Mat Mat::operator*(const Mat& other) const{
     /**
      * Trying to replicate numpy broadcasting 
      * https://numpy.org/doc/stable/user/basics.broadcasting.html
