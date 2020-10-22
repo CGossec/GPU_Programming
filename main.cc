@@ -6,6 +6,7 @@
 #include <iostream>
 #include "matrices.hh"
 #include "icp.hh"
+#include "icp-matlab.hh"
 
 Mat parse_file(std::ifstream &file) {
     std::string line;

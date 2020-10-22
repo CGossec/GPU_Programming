@@ -14,6 +14,7 @@ struct Mat
     static Mat eye(int dim);
 
     Mat dot(const Mat&);
+    Mat dot(const std::vector<float>&);
     Mat T();
 
     std::vector<float> operator[](const int pos) const;

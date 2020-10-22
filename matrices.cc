@@ -80,6 +80,18 @@ Mat Mat::dot(const Mat& other){
     return ret;
 }
 
+Mat Mat::dot(const std::vector<float>& other)
+{
+    if (this->m_width != other.size())
+    {
+        printf("Invalid dot product, shapes do not match {%i, %i} vs {%i, 1}",
+               this->m_height, this->m_width, other.size());
+        throw "Invalid dot product";
+    }
+    Mat vector({other});
+    return dot(vector);
+}
+
 Mat Mat::T() {
     auto ret = Mat(this->m_width, this->m_height);
     for (int i = 0; i < this->m_height; i++)
