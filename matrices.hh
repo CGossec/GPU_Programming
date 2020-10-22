@@ -11,7 +11,8 @@ struct Mat
     Mat() = delete;
     Mat(int height, int width);
     Mat(int height, int width, float value);
-    Mat(std::vector<std::vector<float>>&& list_init);
+    Mat(const std::vector<std::vector<float>>&& list_init);
+    Mat(const std::vector<float>& list_init);
     Mat(const Mat& m);
 
     static Mat eye(int dim);

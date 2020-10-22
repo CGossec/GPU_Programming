@@ -26,7 +26,7 @@ Mat::Mat(int height, int width, float value)
     }
 }
 
-Mat::Mat(std::vector<std::vector<float>>&& list_init){
+Mat::Mat(const std::vector<std::vector<float>>&& list_init){
     auto height = list_init.size();
     auto width = list_init[0].size();
 
@@ -37,6 +37,13 @@ Mat::Mat(std::vector<std::vector<float>>&& list_init){
     m_height = height;
     m_width = width;
     m_buffer = list_init;
+}
+
+Mat::Mat(const std::vector<float>& list_init){
+    m_height = list_init.size();
+    m_width = 1;
+    for (int i = 0; i < m_height; ++i)
+        m_buffer.push_back(std::vector<float>{list_init[i]});
 }
 
 Mat::Mat(const Mat& m)
