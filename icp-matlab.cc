@@ -32,30 +32,29 @@ ICP_matlab::ICP_matlab (const Mat& M, const Mat& P)
     , scaling_factor_(1)
     , rotation_matrix_(Mat::eye(dim_))
     , translation_offset_(Mat(dim_, 1))
+    , p_transformed_(P)
+    , err_(0.)
 {
     long nb_p_point = P.m_width;
     long nb_m_point = M.m_width;
     int max_iter = 200;
     double treshold = 0.0001;
-    double err = 0.;
-
-    Mat p_copy(P);
 
     for (int i = 0; i < max_iter; ++i) {
         auto Y = get_correspondences(P, M);
-        //find_alignement(p_copy, Y);
+        err_ = find_alignment(p_transformed_, Y);
         for (long j = 0; j < nb_p_point; ++j)
         {
-            auto new_point = rotation_matrix_.dot(p_copy[j]) * scaling_factor_ + translation_offset_;
-            p_copy[j] = new_point[0];
+            auto new_point = rotation_matrix_.dot(p_transformed_[j]) * scaling_factor_ + translation_offset_;
+            p_transformed_[j] = new_point[0];
             Mat e(dim_, 1);
-            for (int k = 0; k < p_copy[j].size(); ++k)
-                e[k][0] = Y[j][k] - p_copy[j][k];
-            err += (e.T().dot(e))[0][0];
+            for (int k = 0; k < p_transformed_[j].size(); ++k)
+                e[k][0] = Y[j][k] - p_transformed_[j][k];
+            err_ += (e.T().dot(e))[0][0];
         }
-        err /= nb_p_point;
+        err_ /= nb_p_point;
 
-        if (err < treshold)
+        if (err_ < treshold)
             break;
     }
 

@@ -25,6 +25,8 @@ private:
     float scaling_factor_;
     Mat rotation_matrix_;
     Mat translation_offset_;
+    Mat p_transformed_;
+    double err_;
 };
 
 
