@@ -9,11 +9,15 @@ struct Mat
     Mat(int height, int width);
     Mat(int height, int width, float value);
     Mat(std::vector<std::vector<float>>&& list_init);
+    Mat(const Mat& m);
+
+    static Mat eye(int dim);
 
     Mat dot(const Mat&);
     Mat T();
 
     std::vector<float> operator[](const int pos) const;
+    std::vector<float>& operator[](const int pos);
     Mat operator+(const Mat&);
     Mat operator-(const Mat&);
     Mat operator*(const float&);

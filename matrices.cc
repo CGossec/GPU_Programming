@@ -33,10 +33,31 @@ Mat::Mat(std::vector<std::vector<float>>&& list_init){
     for (std::size_t i = 0; i < height; ++i)
         if (list_init[i].size() != width)
             throw "Invalid list initialization, internal vectors were not of same width.";
-    
+
     m_height = height;
     m_width = width;
     m_buffer = list_init;
+}
+
+Mat::Mat(const Mat& m)
+    : m_height(m.m_height)
+    , m_width(m.m_width)
+{
+    for (int i = 0; i < m_height; ++i) {
+        std::vector<float> tmp;
+        for (int j = 0; j < m_width; ++j) {
+            tmp.push_back(m[i][j]);
+        }
+        m_buffer.push_back(tmp);
+    }
+}
+
+Mat Mat::eye(int dim)
+{
+    Mat ret(dim, dim);
+    for (int i = 0; i < dim; ++i)
+        ret[i][i] = 1;
+    return ret;
 }
 
 Mat Mat::dot(const Mat& other){
@@ -68,6 +89,10 @@ Mat Mat::T() {
 }
 
 std::vector<float> Mat::operator[](const int pos) const {
+    return this->m_buffer[pos];
+}
+
+std::vector<float>& Mat::operator[](const int pos) {
     return this->m_buffer[pos];
 }
 

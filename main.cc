@@ -50,11 +50,14 @@ int main(int argc, char const *argv[])
         std::cout << std::get<0>(coord) << "," << std::get<1>(coord) << '\n';
     }
     */
-    Mat first = {{{1,2,3}}};
-    Mat second = {{{1}, {2}, {3}}};
-    auto third = first.dot(second);
+    Mat first = {{{1,2,3}, {7,4,5}}};
+    Mat second(first);
+    Mat third = Mat::eye(3);
+    first.print();
+    second.print();
     third.print();
-    third = first * second;
-    third.print();
+    second[1][1] = 10;
+    first.print();
+    second.print();
     return 0;
 }
