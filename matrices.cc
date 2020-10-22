@@ -198,7 +198,7 @@ Mat Mat::copy() const {
     return res;
 }
 
-float mean(std::vector<float> v)
+float mean_vector(const std::vector<float>& v)
 {
     float r = 0.;
     for (int i = 0; i < v.size(); ++i)
@@ -207,8 +207,11 @@ float mean(std::vector<float> v)
 }
 
 Mat Mat::mean() const {
-    Mat ret(1, m_width);
-    for (int i = 0; i < m_width)
-        ret[i] = mean(m_buffer[i]);
-    return ret;
+    std::vector<float> aggreagate(m_width, 0);
+    for (int i = 0; i < m_height; ++i)
+        for (int j = 0; j < m_width; ++j)
+            aggreagate[j] += m_buffer[i][j];
+    for (int i = 0; i < m_width; ++i)
+        aggreagate[i] /= m_height;
+    return Mat({aggreagate});
 }

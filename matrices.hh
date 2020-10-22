@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <vector>
 #include <iostream>
 
@@ -16,7 +17,7 @@ struct Mat
     Mat dot(const Mat&);
     Mat dot(const std::vector<float>&);
     Mat T();
-    Mat mean()
+    Mat mean() const;
 
     std::vector<float> operator[](const int pos) const;
     std::vector<float>& operator[](const int pos);
