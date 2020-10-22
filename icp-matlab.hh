@@ -17,6 +17,27 @@ class ICP_matlab
 public:
     ICP_matlab (const Mat& M, const Mat& P);
     ~ICP_matlab();
+
+    float get_scaling_factor() {
+        return scaling_factor_;
+    }
+
+    Mat get_rotation_matrix() {
+        return rotation_matrix_;
+    }
+
+    Mat get_translation_offset() {
+        return translation_offset_;
+    }
+
+    Mat get_p_transformed() {
+        return p_transformed_;
+    }
+
+    double get_err() {
+        return err_;
+    }
+
 private:
     Mat get_correspondences(const Mat& P, const Mat& M);
     float find_alignment(const Mat& P, const Mat& Y);
