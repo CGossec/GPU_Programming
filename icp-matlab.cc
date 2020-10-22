@@ -27,17 +27,18 @@ Mat ICP_matlab::get_correspondences(const Mat& P, const Mat& M) {
 
 // M is the model points
 // P is points that need to be transformed
-ICP_matlab::ICP_matlab (const Mat& M, const Mat& P) {
+ICP_matlab::ICP_matlab (const Mat& M, const Mat& P)
+    : dim_(3)
+    , scaling_factor_(1)
+    , rotation_matrix_(Mat::eye(dim_))
+    , translation_offset_(Mat(dim_, 1))
+{
     long nb_p_point = P.m_width;
     long nb_m_point = M.m_width;
-    int dim = 3;
-    float scaling_factor = 1;
     int max_iter = 200;
     double treshold = 0.0001;
     double err = 0.;
 
-    Mat rotation_matrix = Mat::eye(dim);
-    Mat translation_offset(dim, 1);
     Mat p_copy(P);
 
     for (int i = 0; i < max_iter; ++i) {
@@ -45,9 +46,9 @@ ICP_matlab::ICP_matlab (const Mat& M, const Mat& P) {
         //find_alignement(p_copy, Y);
         for (long j = 0; j < nb_p_point; ++j)
         {
-            auto new_point = rotation_matrix.dot(p_copy[j]) * scaling_factor + translation_offset;
+            auto new_point = rotation_matrix_.dot(p_copy[j]) * scaling_factor_ + translation_offset_;
             p_copy[j] = new_point[0];
-            Mat e(dim, 1);
+            Mat e(dim_, 1);
             for (int k = 0; k < p_copy[j].size(); ++k)
                 e[k][0] = Y[j][k] - p_copy[j][k];
             err += (e.T().dot(e))[0][0];

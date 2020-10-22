@@ -19,6 +19,12 @@ public:
     ~ICP_matlab();
 private:
     Mat get_correspondences(const Mat& P, const Mat& M);
+    float find_alignment(const Mat& P, const Mat& Y);
+
+    int dim_;
+    float scaling_factor_;
+    Mat rotation_matrix_;
+    Mat translation_offset_;
 };
 
 
