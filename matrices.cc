@@ -197,3 +197,18 @@ Mat Mat::copy() const {
             res.m_buffer[h][w] = this->m_buffer[h][w];
     return res;
 }
+
+float mean(std::vector<float> v)
+{
+    float r = 0.;
+    for (int i = 0; i < v.size(); ++i)
+        r += v[i];
+    return r / v.size();
+}
+
+Mat Mat::mean() const {
+    Mat ret(1, m_width);
+    for (int i = 0; i < m_width)
+        ret[i] = mean(m_buffer[i]);
+    return ret;
+}

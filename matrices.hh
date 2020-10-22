@@ -16,6 +16,7 @@ struct Mat
     Mat dot(const Mat&);
     Mat dot(const std::vector<float>&);
     Mat T();
+    Mat mean()
 
     std::vector<float> operator[](const int pos) const;
     std::vector<float>& operator[](const int pos);
