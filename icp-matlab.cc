@@ -38,10 +38,11 @@ ICP_matlab::ICP_matlab (const Mat& M, const Mat& P)
 {
     long nb_p_point = P.m_height;
     long nb_m_point = M.m_height;
-    int max_iter = 200;
-    double treshold = 0.0001;
+    int max_iter = 1000;
+    double treshold = 0.000001;
+    int i = 0;
 
-    for (int i = 0; i < max_iter; ++i) {
+    for (; i < max_iter; ++i) {
         auto Y = get_correspondences(P, M);
         err_ = find_alignment(Y, p_transformed_);
         for (long j = 0; j < nb_p_point; ++j)
@@ -49,9 +50,7 @@ ICP_matlab::ICP_matlab (const Mat& M, const Mat& P)
             auto new_point = rotation_matrix_.dot(p_transformed_[j]) * scaling_factor_ + translation_offset_;
             for (int k = 0; k < new_point[0].size(); ++k)
                 p_transformed_[j][k] = new_point[0][k];
-            Mat e(dim_, 1);
-            for (int k = 0; k < p_transformed_[j].size(); ++k)
-                e[k][0] = Y[j][k] - p_transformed_[j][k];
+            Mat e = Mat(Y[j]) - Mat(p_transformed_[j]);
             err_ += (e.T().dot(e))[0][0];
         }
         err_ /= nb_p_point;
@@ -60,13 +59,16 @@ ICP_matlab::ICP_matlab (const Mat& M, const Mat& P)
             break;
     }
 
+    if (i >= max_iter) {
+        std::cerr << "ICP did not converge in max iter = " << max_iter << " operations, error = " << err_ << "\n";
+    }
 }
 
 float sum_multiply(const std::vector<float>& a, const std::vector<float>& b)
 {
     float ret = 0;
     for (int i = 0; i < a.size(); ++i)
-        ret += a[i] * a[i];
+        ret += a[i] * b[i];
     return ret;
 }
 
