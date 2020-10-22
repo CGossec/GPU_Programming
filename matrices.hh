@@ -4,6 +4,8 @@
 #include <vector>
 #include <iostream>
 
+#include <Eigen/Eigenvalues>
+
 struct Mat
 {
     Mat() = delete;
@@ -25,6 +27,8 @@ struct Mat
     Mat operator-(const Mat&) const;
     Mat operator*(const float&) const;
     Mat operator*(const Mat&) const;
+
+    std::vector<std::tuple<float, std::vector<float>>> eigen() const;
 
     void print() const;
     Mat copy() const;

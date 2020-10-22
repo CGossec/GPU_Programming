@@ -226,3 +226,48 @@ Mat Mat::mean() const {
         aggreagate[i] /= m_height;
     return Mat({aggreagate});
 }
+
+std::vector<std::tuple<float, Eigen::VectorXf>> get_eigen(Eigen::MatrixXf m) {
+    Eigen::EigenSolver<Eigen::MatrixXf> eigensolver;
+
+    eigensolver.compute(m);
+
+    Eigen::VectorXf eigen_values = eigensolver.eigenvalues().real();
+    Eigen::MatrixXf eigen_vectors = eigensolver.eigenvectors().real();
+    std::vector<std::tuple<float, Eigen::VectorXf>> eigen_vectors_and_values;
+
+    for(int i = 0; i < eigen_values.size(); i++){
+        std::tuple<float, Eigen::VectorXf> vec_and_val(eigen_values[i], eigen_vectors.row(i));
+        eigen_vectors_and_values.push_back(vec_and_val);
+    }
+
+    std::sort(eigen_vectors_and_values.begin(), eigen_vectors_and_values.end(),
+              [&](const std::tuple<float, Eigen::VectorXf>& a, const std::tuple<float, Eigen::VectorXf>& b) -> bool{
+                  return std::get<0>(a) <= std::get<0>(b);
+              });
+
+    return eigen_vectors_and_values;
+}
+
+std::vector<std::tuple<float, std::vector<float>>> Mat::eigen() const {
+    Eigen::MatrixXf eigen_mat(m_height, m_width);
+
+    for (int i = 0; i < m_height; ++i)
+        for (int j = 0; j < m_width; ++j)
+            eigen_mat(i, j) = m_buffer[i][j];
+
+    auto eigen_value_vector = get_eigen(eigen_mat);
+
+    std::vector<std::tuple<float, std::vector<float>>> ret;
+    for (int i = 0; i < eigen_value_vector.size(); ++i)
+    {
+        std::vector<float> tmp;
+        auto eigen_vector = std::get<1>(eigen_value_vector[i]);
+        for (int j = 0; j < m_height; ++j)
+            tmp.push_back(eigen_vector[j]);
+        std::tuple<float, std::vector<float>> tup = std::make_tuple(std::get<0>(eigen_value_vector[i]), tmp);
+        ret.push_back(tup);
+    }
+
+    return ret;
+}

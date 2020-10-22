@@ -51,8 +51,15 @@ int main(int argc, char const *argv[])
         std::cout << std::get<0>(coord) << "," << std::get<1>(coord) << '\n';
     }
     */
-    Mat first = {{{1,2,3}, {7,4,5}, {11,22,33}, {1,5,7}}};
+    Mat first = {{{1,2,3}, {7,4,5}, {11,22,33}}};
     first.print();
-    first.mean().print();
+    auto eig = first.eigen();
+    for (auto tup : eig)
+    {
+        std::cout << "eigen value : " << std::get<0>(tup) << "\n" << "eigen vector : ";
+        for (int i = 0; i < std::get<1>(tup).size(); ++i)
+            std::cout << std::get<1>(tup)[i] << " ";
+        std::cout << "\n\n";
+    }
     return 0;
 }
