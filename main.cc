@@ -46,18 +46,21 @@ int main(int argc, char const *argv[])
     Mat test = parse_file(file1);
     Mat ref = parse_file(file2);
 
-    ICP_matlab res(ref, test);
+    try {
+        ref.print();
+        ICP_matlab res(ref, test);
+        res.get_p_transformed().print();
+    } catch (const char* msg) {
+        std::cerr << msg << std::endl;
+    }
+
+    std::cout << "End\n";
     /*
     Mat first = {{{1,2,3}, {7,4,5}, {11,22,33}}};
     first.print();
-    auto eig = first.eigen();
-    for (auto tup : eig)
-    {
-        std::cout << "eigen value : " << std::get<0>(tup) << "\n" << "eigen vector : ";
-        for (int i = 0; i < std::get<1>(tup).size(); ++i)
-            std::cout << std::get<1>(tup)[i] << " ";
-        std::cout << "\n\n";
-    }
+    std::vector<float> v{1,2,3,4};
+    Mat second(v);
+    second.print();
     */
     return 0;
 }

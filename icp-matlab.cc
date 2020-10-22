@@ -10,15 +10,16 @@ float norm(std::vector<float> a, std::vector<float> b) {
 
 // For each point in P find closest one in Q.
 Mat ICP_matlab::get_correspondences(const Mat& P, const Mat& M) {
-    Mat Y(P.m_height, P.m_width) ;
+    Mat Y(P.m_height, P.m_width);
 
-    for (int i = 0; i < P.m_width; ++i)
+    for (int i = 0; i < P.m_height; ++i)
     {
         std::vector<float> d;
         for (int k = 0; k < M.m_width; ++k)
             d.push_back(norm(P[i], M[k]));
         auto min_idx = std::min_element(d.begin(), d.end()) - d.begin();
-        Y[i] = M[min_idx];
+        for (int j = 0; j < M[i].size(); ++j)
+            Y[i][j] = M[i][j];
     }
 
     return Y;
@@ -35,18 +36,19 @@ ICP_matlab::ICP_matlab (const Mat& M, const Mat& P)
     , p_transformed_(P)
     , err_(0.)
 {
-    long nb_p_point = P.m_width;
-    long nb_m_point = M.m_width;
+    long nb_p_point = P.m_height;
+    long nb_m_point = M.m_height;
     int max_iter = 200;
     double treshold = 0.0001;
 
     for (int i = 0; i < max_iter; ++i) {
         auto Y = get_correspondences(P, M);
-        err_ = find_alignment(p_transformed_, Y);
+        err_ = find_alignment(Y, p_transformed_);
         for (long j = 0; j < nb_p_point; ++j)
         {
             auto new_point = rotation_matrix_.dot(p_transformed_[j]) * scaling_factor_ + translation_offset_;
-            p_transformed_[j] = new_point[0];
+            for (int k = 0; k < new_point[0].size(); ++k)
+                p_transformed_[j][k] = new_point[0][k];
             Mat e(dim_, 1);
             for (int k = 0; k < p_transformed_[j].size(); ++k)
                 e[k][0] = Y[j][k] - p_transformed_[j][k];
@@ -70,12 +72,12 @@ float sum_multiply(const std::vector<float>& a, const std::vector<float>& b)
 
 float ICP_matlab::find_alignment(const Mat& Y, const Mat& P)
 {
-    long nb_p_point = P.m_width;
-    long nb_y_point = Y.m_width;
+    long nb_p_point = P.m_height;
+    long nb_y_point = Y.m_height;
 
     if (nb_p_point != nb_y_point)
         throw "Point sets need to have same number of points";
-    if (Y.m_height != 3 && P.m_height != 3)
+    if (Y.m_width != 3 && P.m_width != 3)
         throw "Need points of dimension3";
     if (nb_p_point < 4)
         throw "Need at least 4 points";
@@ -142,21 +144,21 @@ float ICP_matlab::find_alignment(const Mat& Y, const Mat& P)
     // Compute scaling factor
     float sp = 0;
     float d = 0;
-    for (int i =0; i < nb_p_point; ++i)
+    for (int i = 0; i < nb_p_point; ++i)
     {
-        d += Mat({yprime[i]}).T().dot(Mat({yprime[i]}))[0][0];
-        sp += Mat({pprime[i]}).T().dot(Mat({pprime[i]}))[0][0];
+        d += Mat(yprime[i]).T().dot(yprime[i])[0][0];
+        sp += Mat(pprime[i]).T().dot(pprime[i])[0][0];
     }
     scaling_factor_ = std::sqrt(d / sp);
 
     // Compute translational offset
-    translation_offset_ = mean_y - rotation_matrix_.dot(mean_p) * scaling_factor_;
+    translation_offset_ = mean_y.T() - rotation_matrix_.dot(mean_p.T()) * scaling_factor_;
 
     // Compute residual error
     float err = 0.;
     for (int i = 0; i < nb_p_point; ++i)
     {
-        auto d = Mat({Y[i]}) - rotation_matrix_.dot(P[i]) * scaling_factor_ + translation_offset_;
+        auto d = Mat(Y[i]) - rotation_matrix_.dot(P[i]) * scaling_factor_ + translation_offset_;
         err += d.T().dot(d)[0][0];
     }
 

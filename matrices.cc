@@ -231,7 +231,7 @@ Mat Mat::mean() const {
             aggreagate[j] += m_buffer[i][j];
     for (int i = 0; i < m_width; ++i)
         aggreagate[i] /= m_height;
-    return Mat({aggreagate});
+    return Mat(std::vector<std::vector<float>>{aggreagate});
 }
 
 std::vector<std::tuple<float, Eigen::VectorXf>> get_eigen(Eigen::MatrixXf m) {
