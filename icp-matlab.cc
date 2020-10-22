@@ -15,11 +15,11 @@ Mat ICP_matlab::get_correspondences(const Mat& P, const Mat& M) {
     for (int i = 0; i < P.m_height; ++i)
     {
         std::vector<float> d;
-        for (int k = 0; k < M.m_width; ++k)
+        for (int k = 0; k < M.m_height; ++k)
             d.push_back(norm(P[i], M[k]));
         auto min_idx = std::min_element(d.begin(), d.end()) - d.begin();
-        for (int j = 0; j < M[i].size(); ++j)
-            Y[i][j] = M[i][j];
+        for (int j = 0; j < M[min_idx].size(); ++j)
+            Y[i][j] = M[min_idx][j];
     }
 
     return Y;
