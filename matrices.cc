@@ -127,7 +127,7 @@ Mat Mat::operator+(const Mat& other){
 }
 
 Mat Mat::operator-(const Mat& other){
-    if (this->m_height != other.m_height || this->m_width != other.m_width)
+    if ((this->m_width != other.m_width) || (m_height != other.m_height && other.m_height != 1))
     {
         printf("Could not subtract matrices, dimensions do not match {%i, %i} vs {%i, %i}",
             this->m_height, this->m_width, other.m_height, other.m_width);
@@ -135,9 +135,20 @@ Mat Mat::operator-(const Mat& other){
     }
 
     Mat ret = Mat(this->m_height, this->m_width);
-    for (int i = 0; i < this->m_height; i++) {
-        for (int j = 0; j < this->m_width; j++) {
-            ret.m_buffer[i][j] = this->m_buffer[i][j] - other.m_buffer[i][j];
+    if (m_height == other.m_height)
+    {
+        for (int i = 0; i < this->m_height; i++) {
+            for (int j = 0; j < this->m_width; j++) {
+                ret.m_buffer[i][j] = this->m_buffer[i][j] - other.m_buffer[i][j];
+            }
+        }
+    }
+    else
+    {
+        for (int i = 0; i < this->m_height; i++) {
+            for (int j = 0; j < this->m_width; j++) {
+                ret.m_buffer[i][j] = this->m_buffer[i][j] - other.m_buffer[0][j];
+            }
         }
     }
 
