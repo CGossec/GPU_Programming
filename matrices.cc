@@ -125,19 +125,28 @@ Mat Mat::operator*(const Mat& other){
      * https://numpy.org/doc/stable/user/basics.broadcasting.html
      * TODO
      */
-    if (this->m_height != 1 || other.m_width != 1){
-        printf("Could not broadcast matrices, dimensions do not match {%i, %i} vs {%i, %i}",
-               this->m_height, this->m_width, other.m_height, other.m_width);
-        throw "Invalid broadcast";
-    }
     auto ret_h = std::max(this->m_height, other.m_height);
     auto ret_w = std::max(this->m_width, other.m_width);
     Mat ret = Mat(ret_h, ret_w);
 
-    for (int i = 0; i < ret_h; ++i) {
-        for (int j = 0; j < ret_w; ++j){
+    if (this->m_height == 1 && other.m_width == 1){
+        for (int i = 0; i < ret_h; ++i) {
+            for (int j = 0; j < ret_w; ++j){
                 ret.m_buffer[i][j] += this->m_buffer[0][i] * other.m_buffer[j][0];
+            }
         }
+    }
+    else if (this->m_width == 1 && other.m_height == 1){
+        for (int i = 0; i < ret_h; ++i) {
+            for (int j = 0; j < ret_w; ++j){
+                ret.m_buffer[i][j] += other.m_buffer[0][i] * this->m_buffer[j][0];
+            }
+        }
+    }
+    else{
+        printf("Could not broadcast matrices, dimensions do not match {%i, %i} vs {%i, %i}",
+               this->m_height, this->m_width, other.m_height, other.m_width);
+        throw "Invalid broadcast";
     }
     return ret;
 }
