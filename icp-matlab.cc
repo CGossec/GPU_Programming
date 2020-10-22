@@ -116,10 +116,8 @@ float ICP_matlab::find_alignment(const Mat& Y, const Mat& P)
         });
 
     //TODO: Compute eigen vector and value
-    Mat D = Mat::eye(4); // eigen value
-    Mat V(4, 4); // eigen vector
-
-    auto q = V[3]; // eigen vector associated to largest eigen value
+    auto eig = Nmatrix.eigen();
+    auto q = std::get<1>(eig[eig.size() - 1]); // eigen vector associated to largest eigen value
 
     auto Qbar = Mat({
             {q[0], -q[1], -q[2], -q[3]},
@@ -135,8 +133,11 @@ float ICP_matlab::find_alignment(const Mat& Y, const Mat& P)
             {q[3], -q[2], q[1], q[0]}
         });
 
-    rotation_matrix_ = Qbar.T().dot(Q);
+    auto rot = Qbar.T().dot(Q);
     // R = R(2:4, 2:4)
+    for (int i = 0; i < rot.m_height - 1; ++i)
+        for (int j = 0; j < rot.m_width - 1; ++j)
+            rotation_matrix_[i][j] = rot[i + 1][j + 1];
 
     // Compute scaling factor
     float sp = 0;
