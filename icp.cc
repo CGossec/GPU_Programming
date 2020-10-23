@@ -144,12 +144,13 @@ Mat icp::icp_least_squares(Mat P, Mat Q){
         auto H = std::get<0>(prep_sys);
         auto G = std::get<1>(prep_sys);
         //auto chi = std::get<2>(prep_sys);
-        auto dx = H.inverse().dot(G) * -1;
-        x = x + dx.T();
+        auto dx = H.inverse().dot(G).T();
+        x = x - dx;
         //x[0][3] = atan2(sin(x[0][3]), cos(x[0][3]));
         //chi_values.push_back(chi);
         //x_values.push_back(x.copy());
         auto translation = Mat(std::vector<float>{x[0][0], x[0][1], x[0][2]}).T();
+        translation.print();
         P_copy = rotation[0].dot(rotation[1]).dot(rotation[2]).dot(P.T()).T() + translation;
     }
     //corresp_values.push_back(corresp_values[corresp_values.size() - 1]);
