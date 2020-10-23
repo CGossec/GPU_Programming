@@ -31,30 +31,6 @@ Mat parse_file(std::ifstream &file) {
     return results;
 }
 
-double norm2(std::vector<float> a, std::vector<float> b) {
-    float r = 0;
-    for (int i = 0; i < a.size(); i++) {
-        r += (a[i] - b[i]) * (a[i] - b[i]);
-    }
-    return std::sqrt(r);
-}
-
-Mat get_corres(const Mat& P, const Mat& M) {
-    Mat Y(P.m_height, P.m_width);
-
-    for (int i = 0; i < P.m_height; ++i)
-    {
-        std::vector<float> d;
-        for (int k = 0; k < M.m_height; ++k)
-            d.push_back(norm2(P[i], M[k]));
-        auto min_idx = std::min_element(d.begin(), d.end()) - d.begin();
-        for (int j = 0; j < M[min_idx].size(); ++j)
-            Y[i][j] = M[min_idx][j];
-    }
-
-    return Y;
-}
-
 int main(int argc, char const *argv[])
 {
     if (argc != 3) {
@@ -70,12 +46,21 @@ int main(int argc, char const *argv[])
     Mat test = parse_file(file1);
     Mat ref = parse_file(file2);
 
-    //get_corres(test, ref).print();
+    //try {
+    //    ref.print();
+    //    test.print();
+    //    ICP_matlab res(ref, test);
+    //    res.get_p_transformed().print();
+    //} catch (const char* msg) {
+    //    std::cerr << msg << std::endl;
+    //}
+
     try {
         ref.print();
         test.print();
-        ICP_matlab res(ref, test);
-        res.get_p_transformed().print();
+        icp icp(3);
+        auto res = icp.icp_least_squares(test, ref);
+        res.print();
     } catch (const char* msg) {
         std::cerr << msg << std::endl;
     }

@@ -10,87 +10,80 @@ icp::icp(int n_dim)
 }
 
 
-std::array<Mat, 3> icp::get_r(const float theta) const {
+std::array<Mat, 3> icp::get_r(const float theta1, const float theta2, const float theta3) const {
     Mat rx{{
                       {1, 0, 0},
-                      {0, std::cos(theta), -std::sin(theta)},
-                      {0, std::sin(theta), std::cos(theta),
+                      {0, std::cos(theta1), -std::sin(theta1)},
+                      {0, std::sin(theta1), std::cos(theta1),
                       }}};
     Mat ry{{
-                      {std::cos(theta), 0, std::sin(theta)},
+                      {std::cos(theta2), 0, std::sin(theta2)},
                       {0, 1, 0},
-                      {-std::sin(theta), 0, -std::cos(theta),
+                      {-std::sin(theta2), 0, std::cos(theta2),
                       }}};
     Mat rz{{
-                      {std::cos(theta), -std::sin(theta), 0},
-                      {std::sin(theta), std::cos(theta), 0},
+                      {std::cos(theta3), -std::sin(theta3), 0},
+                      {std::sin(theta3), std::cos(theta3), 0},
                       {0, 0, 1,
                       }}};
     std::array<Mat, 3> res {rx, ry, rz};
     return res;
 }
 
-std::array<Mat, 3> icp::get_dr(const float theta) const {
+std::array<Mat, 3> icp::get_dr(const float theta1, const float theta2, const float theta3) const {
     Mat rx{{
                       {0, 0, 0},
-                      {0, -std::sin(theta), -std::cos(theta)},
-                      {0, std::cos(theta), -std::sin(theta),
+                      {0, -std::sin(theta1), -std::cos(theta1)},
+                      {0, std::cos(theta1), -std::sin(theta1),
                       }}};
     Mat ry{{
-                      {-std::sin(theta), 0, std::cos(theta)},
+                      {-std::sin(theta2), 0, std::cos(theta2)},
                       {0, 0, 0},
-                      {-std::cos(theta), 0, -std::sin(theta),
+                      {-std::cos(theta2), 0, -std::sin(theta2),
                       }}};
     Mat rz{{
-                      {-std::sin(theta), -std::cos(theta), 0},
-                      {std::cos(theta), -std::sin(theta), 0},
+                      {-std::sin(theta3), -std::cos(theta3), 0},
+                      {std::cos(theta3), -std::sin(theta3), 0},
                       {0, 0, 0,
                       }}};
     std::array<Mat, 3> res {rx, ry, rz};
     return res;
 }
 
-std::array<Mat, 3> icp::get_jacobian(const Mat& x, const Mat& p_point) const {
-    float theta = x[0][2];
-    Mat jacobianx{{
+Mat icp::get_jacobian(const Mat& x, const Mat& p_point) const {
+    Mat jacobian{{
                         {1, 0, 0, 0, 0, 0},
                         {0, 1, 0, 0, 0, 0},
                         {0, 0, 1, 0, 0, 0}
                     }};
-    Mat jacobiany{{
-                        {1, 0, 0, 0, 0, 0},
-                        {0, 1, 0, 0, 0, 0},
-                        {0, 0, 1, 0, 0, 0}
-                    }};
-    Mat jacobianz{{
-                        {1, 0, 0, 0, 0, 0},
-                        {0, 1, 0, 0, 0, 0},
-                        {0, 0, 1, 0, 0, 0}
-                    }};
-    auto dr = this->get_dr(theta);
+    auto r = this->get_r(x[0][3], x[0][4], x[0][5]);
+    auto dr = this->get_dr(x[0][3], x[0][4], x[0][5]);
+
+    auto jacob1 = dr[0].dot(r[1]).dot(r[2]).dot(p_point);
+    auto jacob2 = r[0].dot(dr[1]).dot(r[2]).dot(p_point);
+    auto jacob3 = r[0].dot(r[1]).dot(dr[2]).dot(p_point);
+
     for (int i = 0; i < 3; i++) {
-        for (int k = 0; k < 3; k++) {
-            jacobianx[i][k + 3] = dr[0][i][k] * p_point[0][k];
-            jacobiany[i][k + 3] = dr[1][i][k] * p_point[0][k];
-            jacobianz[i][k + 3] = dr[2][i][k] * p_point[0][k];
-        }
+        jacobian[i][3] = jacob1[i][0];
+        jacobian[i][4] = jacob2[i][0];
+        jacobian[i][5] = jacob3[i][0];
     }
-    std::array<Mat, 3> jacobians {jacobianx, jacobiany, jacobianz};
-    return jacobians;
+
+    return jacobian;
 }
 
 
 
-float norm(Mat p) {
+float norm(const Mat& p) {
     float r = 0;
-    for (int i = 0; i < 3; i++) {
+    for (std::size_t i = 0; i < p[0].size(); i++) {
         r += p[0][i] * p[0][i];
     }
     return std::sqrt(r);
 }
 
 // For each point in P find closest one in Q.
-Correspondences get_correspondence_indices(Mat& P, Mat& Q) {
+Correspondences get_correspondence_indices(const Mat& P, const Mat& Q) {
     Correspondences correspondences;
     for (int i = 0; i < P.m_height; i++) {
         auto p_point = Mat({P[i]});
@@ -111,63 +104,59 @@ Correspondences get_correspondence_indices(Mat& P, Mat& Q) {
 }
 
 Mat icp::err(const Mat& x, const Mat& p_point, const Mat& q_point) const {
-    auto rotation = this->get_r(x[0][2]);
-    auto translation = Mat({x[0]});
-    auto prediction = rotation[0].dot(rotation[1].dot(rotation[2].dot(p_point))) + translation;
+    auto rotation = this->get_r(x[0][3], x[0][4], x[0][5]);
+    auto translation = Mat(std::vector<float>{x[0][0], x[0][1], x[0][2]});
+    auto prediction = rotation[0].dot(rotation[1]).dot(rotation[2]).dot(p_point) + translation;
     return prediction - q_point;
 }
 
 icp::prep_sys_t icp::prepare_system(Mat& x, Mat& P, Mat& Q, Correspondences& corr) const {
-    Mat h1 = Mat(3,3);
-    Mat h2 = Mat(3,3);
-    Mat h3 = Mat(3,3);
-    Mat g1 = Mat(1,3);
-    Mat g2 = Mat(1,3);
-    Mat g3 = Mat(1,3);
-    Mat chi = Mat(3,3);
+    Mat H = Mat(6,6);
+    Mat G = Mat(6,1);
+    float chi = 0.;
     for (auto elm : corr){
         Mat p_point = Mat({P[std::get<0>(elm)]});
         Mat q_point = Mat({Q[std::get<1>(elm)]});
         auto e = this->err(x, p_point, q_point);
         auto J = this->get_jacobian(x, p_point);
-        h1 = h1 + J[0].dot(J[0].T());
-        h2 = h2 + J[1].dot(J[1].T());
-        h3 = h3 + J[2].dot(J[2].T());
-        g1 = g1 + J[0].dot(e);
-        g2 = g2 + J[1].dot(e);
-        g3 = g3 + J[2].dot(e);
-        //chi += e * e.T();
+        H = H + J.T().dot(J);
+        G = G + J.T().dot(e);
+        chi += e.T().dot(e)[0][0];
     }
-    std::array<Mat, 3> H = {h1, h2, h3};
-    std::array<Mat, 3> G = {g1, g2, g3};
-    auto res = std::tuple<std::array<Mat,3>,std::array<Mat,3>,Mat>{H,G,chi};
+    auto res = icp::prep_sys_t{H,G,chi};
     return res;
 }
-/*
-void icp::icp_least_squares(Mat P, Mat Q){
+
+Mat icp::icp_least_squares(Mat P, Mat Q){
     int iterations = 30;
-    auto x = Mat(1,4); // 3D point + angle?
-    std::vector<Mat> chi_values;
-    std::vector<Mat> x_values = {x.copy()};
-    std::vector<Mat> P_values = {P.copy()};
+    auto x = Mat(1,6); // 3D point + angle?
+    //std::vector<float> chi_values;
+    //std::vector<Mat> x_values = {x.copy()};
+    //std::vector<Mat> P_values = {P.copy()};
     auto P_copy = P.copy();
-    std::vector<Correspondences> corresp_values;
+    // std::vector<Correspondences> corresp_values;
     for (int i = 0; i < iterations; ++i){
-        auto rot = get_r(x[0][3]);
+        auto rotation = get_r(x[0][3], x[0][4], x[0][5]);
         std::vector<float> x_coords = {x[0][0], x[0][1], x[0][2]};
         auto correspondences = get_correspondence_indices(P_copy, Q);
-        corresp_values.push_back(correspondences);
+        //corresp_values.push_back(correspondences);
         auto prep_sys = prepare_system(x, P, Q, correspondences);
         auto H = std::get<0>(prep_sys);
         auto G = std::get<1>(prep_sys);
-        auto chi = std::get<2>(prep_sys);
-        auto dx = np.linalg.lstsq(H, -g, rcond=None)[0]; //FIXME hahahahahahahaha
-        x += dx;
-        x[0][3] = atan2(sin(x[0][3]), cos(x[0][3]));
-        chi_values.push_back(chi[0][0])
+        //auto chi = std::get<2>(prep_sys);
+        auto dx = H.inverse().dot(G) * -1;
+        x = x + dx.T();
+        //x[0][3] = atan2(sin(x[0][3]), cos(x[0][3]));
+        //chi_values.push_back(chi);
+        //x_values.push_back(x.copy());
+        auto translation = Mat(std::vector<float>{x[0][0], x[0][1], x[0][2]}).T();
+        P_copy = rotation[0].dot(rotation[1]).dot(rotation[2]).dot(P.T()).T() + translation;
     }
+    //corresp_values.push_back(corresp_values[corresp_values.size() - 1]);
+    return P_copy;
 }
 
+/*
 def icp_least_squares(P, Q, iterations=30, kernel=lambda distance: 1.0):
     x = np.zeros((3, 1))
     chi_values = []
