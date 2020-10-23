@@ -91,7 +91,7 @@ Mat Mat::dot(const std::vector<float>& other)
 {
     if (this->m_width != other.size())
     {
-        printf("Invalid dot product, shapes do not match {%i, %i} vs {%i, 1}",
+        printf("Invalid dot product, shapes do not match {%i, %i} vs {%zd, 1}",
                this->m_height, this->m_width, other.size());
         throw "Invalid dot product";
     }

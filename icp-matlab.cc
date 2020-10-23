@@ -1,4 +1,4 @@
-#import "icp-matlab.hh"
+#include "icp-matlab.hh"
 
 float norm(std::vector<float> a, std::vector<float> b) {
     float r = 0;
@@ -37,7 +37,7 @@ ICP_matlab::ICP_matlab (const Mat& M, const Mat& P)
     , err_(0.)
 {
     long nb_p_point = P.m_height;
-    long nb_m_point = M.m_height;
+    // long nb_m_point = M.m_height;
     int max_iter = 1000;
     double treshold = 0.000001;
     int i = 0;
