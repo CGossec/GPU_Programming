@@ -30,6 +30,7 @@ struct Mat
     Mat operator*(const Mat&) const;
 
     std::vector<std::tuple<float, std::vector<float>>> eigen() const;
+    Mat inverse() const;
 
     void print() const;
     Mat copy() const;

@@ -2,7 +2,7 @@
 
 float norm(std::vector<float> a, std::vector<float> b) {
     float r = 0;
-    for (int i = 0; i < a.size(); i++) {
+    for (std::size_t i = 0; i < a.size(); i++) {
         r += (a[i] - b[i]) * (a[i] - b[i]);
     }
     return std::sqrt(r);
@@ -11,6 +11,10 @@ float norm(std::vector<float> a, std::vector<float> b) {
 // For each point in P find closest one in Q.
 Mat ICP_matlab::get_correspondences(const Mat& P, const Mat& M) {
     Mat Y(P.m_height, P.m_width);
+    //std::cout << "get_corres\n";
+    //P.print();
+    //M.print();
+    //std::cout << "get_corres\n";
 
     for (int i = 0; i < P.m_height; ++i)
     {
@@ -18,9 +22,11 @@ Mat ICP_matlab::get_correspondences(const Mat& P, const Mat& M) {
         for (int k = 0; k < M.m_height; ++k)
             d.push_back(norm(P[i], M[k]));
         auto min_idx = std::min_element(d.begin(), d.end()) - d.begin();
-        for (int j = 0; j < M[min_idx].size(); ++j)
+        //Mat(d).print();
+        for (std::size_t j = 0; j < M[min_idx].size(); ++j)
             Y[i][j] = M[min_idx][j];
     }
+    //Y.print();
 
     return Y;
 }
@@ -37,9 +43,8 @@ ICP_matlab::ICP_matlab (const Mat& M, const Mat& P)
     , err_(0.)
 {
     long nb_p_point = P.m_height;
-    // long nb_m_point = M.m_height;
-    int max_iter = 1000;
-    double treshold = 0.000001;
+    int max_iter = 200;
+    double treshold = 0.00001;
     int i = 0;
 
     for (; i < max_iter; ++i) {
@@ -48,7 +53,7 @@ ICP_matlab::ICP_matlab (const Mat& M, const Mat& P)
         for (long j = 0; j < nb_p_point; ++j)
         {
             auto new_point = rotation_matrix_.dot(p_transformed_[j]) * scaling_factor_ + translation_offset_;
-            for (int k = 0; k < new_point[0].size(); ++k)
+            for (std::size_t k = 0; k < new_point[0].size(); ++k)
                 p_transformed_[j][k] = new_point[0][k];
             Mat e = Mat(Y[j]) - Mat(p_transformed_[j]);
             err_ += (e.T().dot(e))[0][0];
@@ -67,7 +72,7 @@ ICP_matlab::ICP_matlab (const Mat& M, const Mat& P)
 float sum_multiply(const std::vector<float>& a, const std::vector<float>& b)
 {
     float ret = 0;
-    for (int i = 0; i < a.size(); ++i)
+    for (std::size_t i = 0; i < a.size(); ++i)
         ret += a[i] * b[i];
     return ret;
 }
@@ -84,6 +89,9 @@ float ICP_matlab::find_alignment(const Mat& Y, const Mat& P)
     if (nb_p_point < 4)
         throw "Need at least 4 points";
 
+    //Mat(P).print();
+    //Mat(Y).print();
+
     auto mean_p = P.mean();
     auto mean_y = Y.mean();
 
@@ -95,10 +103,14 @@ float ICP_matlab::find_alignment(const Mat& Y, const Mat& P)
     auto py = PT[1];
     auto pz = PT[2];
 
+    //Mat({px, py, pz}).print();
+
     auto YT = yprime.T();
     auto yx = YT[0];
     auto yy = YT[1];
     auto yz = YT[2];
+
+    //Mat({yx, yy, yz}).print();
 
     auto Sxx = sum_multiply(px, yx);
     auto Sxy = sum_multiply(px, yy);
@@ -119,9 +131,15 @@ float ICP_matlab::find_alignment(const Mat& Y, const Mat& P)
             {-Syx + Sxy, Szx + Sxz, Szy + Syz, Szz - Syy - Sxx}
         });
 
-    //TODO: Compute eigen vector and value
+    //Nmatrix.print();
     auto eig = Nmatrix.eigen();
-    auto q = std::get<1>(eig[eig.size() - 1]); // eigen vector associated to largest eigen value
+    auto idx_elt = eig.size() - 1;
+    auto tup_elt = eig[idx_elt];
+    auto q = std::get<1>(tup_elt); // eigen vector associated to largest eigen value
+
+    //for (int i = 0; i < eig.size(); ++i)
+    //    std::cout << std::get<0>(eig[i]) << ' ';
+    //std::cout << '\n';
 
     auto Qbar = Mat({
             {q[0], -q[1], -q[2], -q[3]},
@@ -138,20 +156,21 @@ float ICP_matlab::find_alignment(const Mat& Y, const Mat& P)
         });
 
     auto rot = Qbar.T().dot(Q);
+    rot.print();
     // R = R(2:4, 2:4)
     for (int i = 0; i < rot.m_height - 1; ++i)
         for (int j = 0; j < rot.m_width - 1; ++j)
             rotation_matrix_[i][j] = rot[i + 1][j + 1];
 
     // Compute scaling factor
-    float sp = 0;
-    float d = 0;
-    for (int i = 0; i < nb_p_point; ++i)
-    {
-        d += Mat(yprime[i]).T().dot(yprime[i])[0][0];
-        sp += Mat(pprime[i]).T().dot(pprime[i])[0][0];
-    }
-    scaling_factor_ = std::sqrt(d / sp);
+    //float sp = 0;
+    //float d = 0;
+    //for (int i = 0; i < nb_p_point; ++i)
+    //{
+    //    d += Mat(yprime[i]).T().dot(yprime[i])[0][0];
+    //    sp += Mat(pprime[i]).T().dot(pprime[i])[0][0];
+    //}
+    //scaling_factor_ = std::sqrt(d / sp);
 
     // Compute translational offset
     translation_offset_ = mean_y.T() - rotation_matrix_.dot(mean_p.T()) * scaling_factor_;

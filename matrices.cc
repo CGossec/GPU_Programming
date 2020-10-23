@@ -89,7 +89,7 @@ Mat Mat::dot(const Mat& other){
 
 Mat Mat::dot(const std::vector<float>& other)
 {
-    if (this->m_width != other.size())
+    if ((std::size_t)this->m_width != other.size())
     {
         printf("Invalid dot product, shapes do not match {%i, %i} vs {%zd, 1}",
                this->m_height, this->m_width, other.size());
@@ -219,7 +219,7 @@ Mat Mat::copy() const {
 float mean_vector(const std::vector<float>& v)
 {
     float r = 0.;
-    for (int i = 0; i < v.size(); ++i)
+    for (std::size_t i = 0; i < v.size(); ++i)
         r += v[i];
     return r / v.size();
 }
@@ -266,7 +266,7 @@ std::vector<std::tuple<float, std::vector<float>>> Mat::eigen() const {
     auto eigen_value_vector = get_eigen(eigen_mat);
 
     std::vector<std::tuple<float, std::vector<float>>> ret;
-    for (int i = 0; i < eigen_value_vector.size(); ++i)
+    for (std::size_t i = 0; i < eigen_value_vector.size(); ++i)
     {
         std::vector<float> tmp;
         auto eigen_vector = std::get<1>(eigen_value_vector[i]);
@@ -274,6 +274,26 @@ std::vector<std::tuple<float, std::vector<float>>> Mat::eigen() const {
             tmp.push_back(eigen_vector[j]);
         std::tuple<float, std::vector<float>> tup = std::make_tuple(std::get<0>(eigen_value_vector[i]), tmp);
         ret.push_back(tup);
+    }
+
+    return ret;
+}
+
+Mat Mat::inverse() const {
+    Eigen::MatrixXf eigen_mat(m_height, m_width);
+
+    for (int i = 0; i < m_height; ++i)
+        for (int j = 0; j < m_width; ++j)
+            eigen_mat(i, j) = m_buffer[i][j];
+
+
+    auto eigen_inverse = eigen_mat.inverse();
+
+    Mat ret(m_height, m_width);
+    for (int i = 0; i < m_height; ++i) {
+        for (int j = 0; j < m_width; ++j) {
+            ret[i][j] = eigen_inverse(i, j);
+        }
     }
 
     return ret;
