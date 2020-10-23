@@ -2,3 +2,5 @@
 *.ipynb*
 *.vscode*
 *.o
+icp
+eigen-3.3.8

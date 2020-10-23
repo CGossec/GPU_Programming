@@ -16,19 +16,19 @@ class icp
 {
 public:
     icp(int n_dim);
-    ~icp();
+    Mat icp_least_squares(Mat P, Mat Q);
+
 private:
     int _n_dim;
 
-    using prep_sys_t = std::tuple<std::array<Mat,3>,std::array<Mat,3>,Mat>;
+    using prep_sys_t = std::tuple<Mat, Mat, float>;
 
-    std::array<Mat, 3> get_r(const float theta) const;
-    std::array<Mat, 3> get_dr(const float theta) const;
-    std::array<Mat, 3> get_jacobian(const Mat&, const Mat&) const;
+    std::array<Mat, 3> get_r(const float theta1, const float theta2, const float theta3) const;
+    std::array<Mat, 3> get_dr(const float theta1, const float theta2, const float theta3) const;
+    Mat get_jacobian(const Mat&, const Mat&) const;
     Mat err(const Mat& x, const Mat& p_point, const Mat& q_point) const;
     prep_sys_t prepare_system(Mat& x, Mat& P, Mat& Q, Correspondences& corr) const;
-    void icp_least_squares(Mat&, Mat&);
 };
-Correspondences get_correspondence_indices(Mat& P, Mat& Q);
+Correspondences get_correspondence_indices(const Mat& P, const Mat& Q);
 
 #endif //GPGPU_ICP_H

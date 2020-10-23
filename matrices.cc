@@ -26,17 +26,45 @@ Mat::Mat(int height, int width, float value)
     }
 }
 
-Mat::Mat(std::vector<std::vector<float>>&& list_init){
+Mat::Mat(const std::vector<std::vector<float>>&& list_init){
     auto height = list_init.size();
     auto width = list_init[0].size();
 
     for (std::size_t i = 0; i < height; ++i)
         if (list_init[i].size() != width)
             throw "Invalid list initialization, internal vectors were not of same width.";
-    
+
     m_height = height;
     m_width = width;
     m_buffer = list_init;
+}
+
+Mat::Mat(const std::vector<float>& list_init){
+    m_height = list_init.size();
+    m_width = 1;
+    for (int i = 0; i < m_height; ++i)
+        m_buffer.push_back(std::vector<float>{list_init[i]});
+}
+
+Mat::Mat(const Mat& m)
+    : m_height(m.m_height)
+    , m_width(m.m_width)
+{
+    for (int i = 0; i < m_height; ++i) {
+        std::vector<float> tmp;
+        for (int j = 0; j < m_width; ++j) {
+            tmp.push_back(m[i][j]);
+        }
+        m_buffer.push_back(tmp);
+    }
+}
+
+Mat Mat::eye(int dim)
+{
+    Mat ret(dim, dim);
+    for (int i = 0; i < dim; ++i)
+        ret[i][i] = 1;
+    return ret;
 }
 
 Mat Mat::dot(const Mat& other){
@@ -59,6 +87,18 @@ Mat Mat::dot(const Mat& other){
     return ret;
 }
 
+Mat Mat::dot(const std::vector<float>& other)
+{
+    if ((std::size_t)this->m_width != other.size())
+    {
+        printf("Invalid dot product, shapes do not match {%i, %i} vs {%zd, 1}",
+               this->m_height, this->m_width, other.size());
+        throw "Invalid dot product";
+    }
+    Mat vector({other});
+    return dot(vector);
+}
+
 Mat Mat::T() {
     auto ret = Mat(this->m_width, this->m_height);
     for (int i = 0; i < this->m_height; i++)
@@ -71,8 +111,12 @@ std::vector<float> Mat::operator[](const int pos) const {
     return this->m_buffer[pos];
 }
 
-Mat Mat::operator+(const Mat& other){
-    if (this->m_height != other.m_height || this->m_width != other.m_width)
+std::vector<float>& Mat::operator[](const int pos) {
+    return this->m_buffer[pos];
+}
+
+Mat Mat::operator+(const Mat& other) const{
+    if ((this->m_width != other.m_width) || (m_height != other.m_height && other.m_height != 1))
     {
         printf("Could not add matrices, dimensions do not match {%i, %i} vs {%i, %i}",
             this->m_height, this->m_width, other.m_height, other.m_width);
@@ -80,17 +124,28 @@ Mat Mat::operator+(const Mat& other){
     }
 
     Mat ret = Mat(this->m_height, this->m_width);
-    for (int i = 0; i < this->m_height; i++) {
-        for (int j = 0; j < this->m_width; j++) {
-            ret.m_buffer[i][j] = this->m_buffer[i][j] + other.m_buffer[i][j];
+    if (m_height == other.m_height)
+    {
+        for (int i = 0; i < this->m_height; i++) {
+            for (int j = 0; j < this->m_width; j++) {
+                ret.m_buffer[i][j] = this->m_buffer[i][j] + other.m_buffer[i][j];
+            }
+        }
+    }
+    else
+    {
+        for (int i = 0; i < this->m_height; i++) {
+            for (int j = 0; j < this->m_width; j++) {
+                ret.m_buffer[i][j] = this->m_buffer[i][j] + other.m_buffer[0][j];
+            }
         }
     }
 
     return ret;
 }
 
-Mat Mat::operator-(const Mat& other){
-    if (this->m_height != other.m_height || this->m_width != other.m_width)
+Mat Mat::operator-(const Mat& other) const{
+    if ((this->m_width != other.m_width) || (m_height != other.m_height && other.m_height != 1))
     {
         printf("Could not subtract matrices, dimensions do not match {%i, %i} vs {%i, %i}",
             this->m_height, this->m_width, other.m_height, other.m_width);
@@ -98,16 +153,27 @@ Mat Mat::operator-(const Mat& other){
     }
 
     Mat ret = Mat(this->m_height, this->m_width);
-    for (int i = 0; i < this->m_height; i++) {
-        for (int j = 0; j < this->m_width; j++) {
-            ret.m_buffer[i][j] = this->m_buffer[i][j] - other.m_buffer[i][j];
+    if (m_height == other.m_height)
+    {
+        for (int i = 0; i < this->m_height; i++) {
+            for (int j = 0; j < this->m_width; j++) {
+                ret.m_buffer[i][j] = this->m_buffer[i][j] - other.m_buffer[i][j];
+            }
+        }
+    }
+    else
+    {
+        for (int i = 0; i < this->m_height; i++) {
+            for (int j = 0; j < this->m_width; j++) {
+                ret.m_buffer[i][j] = this->m_buffer[i][j] - other.m_buffer[0][j];
+            }
         }
     }
 
     return ret;
 }
 
-Mat Mat::operator*(const float& factor){
+Mat Mat::operator*(const float& factor) const{
     Mat ret = Mat(this->m_height, this->m_width);
 
     for (int i = 0; i < this->m_height; i++) {
@@ -119,7 +185,7 @@ Mat Mat::operator*(const float& factor){
     return ret;
 }
 
-Mat Mat::operator*(const Mat& other){
+Mat Mat::operator*(const Mat& other) const{
     /**
      * Trying to replicate numpy broadcasting 
      * https://numpy.org/doc/stable/user/basics.broadcasting.html
@@ -171,4 +237,87 @@ Mat Mat::copy() const {
         for (int w = 0; w < this->m_width; ++w)
             res.m_buffer[h][w] = this->m_buffer[h][w];
     return res;
+}
+
+float mean_vector(const std::vector<float>& v)
+{
+    float r = 0.;
+    for (std::size_t i = 0; i < v.size(); ++i)
+        r += v[i];
+    return r / v.size();
+}
+
+Mat Mat::mean() const {
+    std::vector<float> aggreagate(m_width, 0);
+    for (int i = 0; i < m_height; ++i)
+        for (int j = 0; j < m_width; ++j)
+            aggreagate[j] += m_buffer[i][j];
+    for (int i = 0; i < m_width; ++i)
+        aggreagate[i] /= m_height;
+    return Mat(std::vector<std::vector<float>>{aggreagate});
+}
+
+std::vector<std::tuple<float, Eigen::VectorXf>> get_eigen(Eigen::MatrixXf m) {
+    Eigen::EigenSolver<Eigen::MatrixXf> eigensolver;
+
+    eigensolver.compute(m);
+
+    Eigen::VectorXf eigen_values = eigensolver.eigenvalues().real();
+    Eigen::MatrixXf eigen_vectors = eigensolver.eigenvectors().real();
+    std::vector<std::tuple<float, Eigen::VectorXf>> eigen_vectors_and_values;
+
+    for(int i = 0; i < eigen_values.size(); i++){
+        std::tuple<float, Eigen::VectorXf> vec_and_val(eigen_values[i], eigen_vectors.row(i));
+        eigen_vectors_and_values.push_back(vec_and_val);
+    }
+
+    std::sort(eigen_vectors_and_values.begin(), eigen_vectors_and_values.end(),
+              [&](const std::tuple<float, Eigen::VectorXf>& a, const std::tuple<float, Eigen::VectorXf>& b) -> bool{
+                  return std::get<0>(a) <= std::get<0>(b);
+              });
+
+    return eigen_vectors_and_values;
+}
+
+std::vector<std::tuple<float, std::vector<float>>> Mat::eigen() const {
+    Eigen::MatrixXf eigen_mat(m_height, m_width);
+
+    for (int i = 0; i < m_height; ++i)
+        for (int j = 0; j < m_width; ++j)
+            eigen_mat(i, j) = m_buffer[i][j];
+
+    auto eigen_value_vector = get_eigen(eigen_mat);
+
+    std::vector<std::tuple<float, std::vector<float>>> ret;
+    for (std::size_t i = 0; i < eigen_value_vector.size(); ++i)
+    {
+        std::vector<float> tmp;
+        auto eigen_vector = std::get<1>(eigen_value_vector[i]);
+        for (int j = 0; j < m_height; ++j)
+            tmp.push_back(eigen_vector[j]);
+        std::tuple<float, std::vector<float>> tup = std::make_tuple(std::get<0>(eigen_value_vector[i]), tmp);
+        ret.push_back(tup);
+    }
+
+    return ret;
+}
+
+Mat Mat::inverse() const {
+    Eigen::MatrixXf eigen_mat(m_height, m_width);
+
+    for (int i = 0; i < m_height; ++i)
+        for (int j = 0; j < m_width; ++j)
+            eigen_mat(i, j) = m_buffer[i][j];
+
+
+    auto eigen_inverse = eigen_mat.inverse();
+
+    Mat ret(m_height, m_width);
+    for (int i = 0; i < m_height; ++i) {
+        for (int j = 0; j < m_width; ++j) {
+            ret[i][j] = eigen_inverse(i, j);
+        }
+    }
+
+    return ret;
 }

@@ -1,13 +1,21 @@
 CXX?=g++
-CPPFLAGS=-Wall -Werror -pedantic -std=c++17 -O3
+CXXFLAGS=-Wall -Werror -pedantic -std=c++17 -g
 
-SRCS=main.cc icp.cc matrices.cc
-OBJS=$(subst .cc,.o,$(SRCS))
+SRCS_LSTSQ=main.cc icp.cc matrices.cc
+OBJS_LSTSQ=$(subst .cc,.o,$(SRCS_LSTSQ))
 
-all: main
+SRCS_MATLAB=main.cc icp-matlab.cc matrices.cc
+OBJS_MATLAB=$(subst .cc,.o,$(SRCS_MATLAB))
 
-main: $(OBJS)
-	$(CXX) -o icp $(OBJS)
+EIGEN_PATH=./eigen-3.3.8
+
+all: matlab
+
+lstsq:
+	$(CXX) $(CXXFLAGS) -o icp -I $(EIGEN_PATH) $(SRCS_LSTSQ)
+
+matlab:
+	$(CXX) $(CXXFLAGS) -o icp -I $(EIGEN_PATH) $(SRCS_MATLAB)
 
 clean:
 	rm $(OBJS) icp

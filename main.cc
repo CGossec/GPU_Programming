@@ -6,6 +6,7 @@
 #include <iostream>
 #include "matrices.hh"
 #include "icp.hh"
+#include "icp-matlab.hh"
 
 Mat parse_file(std::ifstream &file) {
     std::string line;
@@ -32,9 +33,8 @@ Mat parse_file(std::ifstream &file) {
 
 int main(int argc, char const *argv[])
 {
-    /*
     if (argc != 3) {
-        std::cerr << "file must be given as argument\n";
+        std::cerr << "Usage: " << argv[0] << " path/to/test/file path/to/model/file";
         return 1;
     }
     std::ifstream file1(argv[1]);
@@ -46,15 +46,33 @@ int main(int argc, char const *argv[])
     Mat test = parse_file(file1);
     Mat ref = parse_file(file2);
 
-    for (auto coord : get_correspondence_indices(test, ref)) {
-        std::cout << std::get<0>(coord) << "," << std::get<1>(coord) << '\n';
+    //try {
+    //    ref.print();
+    //    test.print();
+    //    ICP_matlab res(ref, test);
+    //    res.get_p_transformed().print();
+    //} catch (const char* msg) {
+    //    std::cerr << msg << std::endl;
+    //}
+
+    try {
+        ref.print();
+        test.print();
+        icp icp(3);
+        auto res = icp.icp_least_squares(test, ref);
+        res.print();
+    } catch (const char* msg) {
+        std::cerr << msg << std::endl;
     }
+
+    std::cout << "End\n";
+
+    /*
+    Mat first = {{{1,2,3}, {7,4,5}, {11,22,33}}};
+    first.print();
+    std::vector<float> v{1,2,3,4};
+    Mat second(v);
+    second.print();
     */
-    Mat first = {{{1,2,3}}};
-    Mat second = {{{1}, {2}, {3}}};
-    auto third = first.dot(second);
-    third.print();
-    third = first * second;
-    third.print();
     return 0;
 }
