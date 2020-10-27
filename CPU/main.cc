@@ -20,11 +20,20 @@ Mat parse_file(std::ifstream &file) {
         }
         std::vector<float> coord;
         std::stringstream ss(line);
+        int i = 0;
         while (ss.good()) {
+            if (i >= 3)
+                break;
             std::string substr;
             std::getline(ss,substr, ',');
             float point = std::stof(substr);
             coord.push_back(point);
+            i++;
+        }
+        if (i < 3)
+        {
+            std::cerr << "ICP only accept 3D points";
+            throw "ICP only accept 3D points";
         }
         results.push_back(coord);
     }
@@ -56,10 +65,11 @@ int main(int argc, char const *argv[])
     //}
 
     try {
-        ref.print();
-        test.print();
-        icp res = icp(test, ref).fit();
-        res.get_src_transformed().print();
+        //ref.print();
+        //test.print();
+        icp res = icp(test, ref);
+        res.fit();
+        //res.get_src_transformed().print();
     } catch (const char* msg) {
         std::cerr << msg << std::endl;
     }
