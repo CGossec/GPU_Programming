@@ -58,9 +58,8 @@ int main(int argc, char const *argv[])
     try {
         ref.print();
         test.print();
-        icp icp(3);
-        auto res = icp.icp_least_squares(test, ref);
-        res.print();
+        icp res = icp(test, ref).fit();
+        res.get_src_transformed().print();
     } catch (const char* msg) {
         std::cerr << msg << std::endl;
     }

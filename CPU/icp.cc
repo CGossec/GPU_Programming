@@ -1,15 +1,5 @@
 #include "icp.hh"
 
-icp::icp(int n_dim)
-{
-    if (n_dim != 2 && n_dim != 3) {
-        std::cerr << "dim must be 2 or 3\n";
-        return;
-    }
-    this->_n_dim = n_dim;
-}
-
-
 std::array<Mat, 3> icp::get_r(const float theta1, const float theta2, const float theta3) const {
     Mat rx{{
                       {1, 0, 0},
@@ -83,7 +73,7 @@ float norm(const Mat& p) {
 }
 
 // For each point in P find closest one in Q.
-Correspondences get_correspondence_indices(const Mat& P, const Mat& Q) {
+Correspondences icp::get_correspondence_indices(const Mat& P, const Mat& Q) {
     Correspondences correspondences;
     for (int i = 0; i < P.m_height; i++) {
         auto p_point = Mat({P[i]});
@@ -127,59 +117,27 @@ icp::prep_sys_t icp::prepare_system(Mat& x, Mat& P, Mat& Q, Correspondences& cor
     return res;
 }
 
-Mat icp::icp_least_squares(Mat P, Mat Q){
-    int iterations = 30;
-    auto x = Mat(1,6); // 3D point + angle?
-    //std::vector<float> chi_values;
-    //std::vector<Mat> x_values = {x.copy()};
-    //std::vector<Mat> P_values = {P.copy()};
-    auto P_copy = P.copy();
-    // std::vector<Correspondences> corresp_values;
+// Compute the 3 rotation matrix and the 3 translation scalars to transform src_ in ref_
+icp& icp::fit(int iterations, int treshold){
+    auto x = Mat(1,6); // 3 rotation factors + 3 translation
+    float chi = 0.;
     for (int i = 0; i < iterations; ++i){
-        auto rotation = get_r(x[0][3], x[0][4], x[0][5]);
-        std::vector<float> x_coords = {x[0][0], x[0][1], x[0][2]};
-        auto correspondences = get_correspondence_indices(P_copy, Q);
-        //corresp_values.push_back(correspondences);
-        auto prep_sys = prepare_system(x, P, Q, correspondences);
+        rotation_matrix_ = get_r(x[0][3], x[0][4], x[0][5]);
+        auto correspondences = get_correspondence_indices(src_transformed_, ref_);
+        auto prep_sys = prepare_system(x, src_, ref_, correspondences);
         auto H = std::get<0>(prep_sys);
         auto G = std::get<1>(prep_sys);
-        //auto chi = std::get<2>(prep_sys);
+        chi = std::get<2>(prep_sys);
         auto dx = H.inverse().dot(G).T();
         x = x - dx;
-        //x[0][3] = atan2(sin(x[0][3]), cos(x[0][3]));
-        //chi_values.push_back(chi);
-        //x_values.push_back(x.copy());
-        auto translation = Mat(std::vector<float>{x[0][0], x[0][1], x[0][2]}).T();
-        translation.print();
-        P_copy = rotation[0].dot(rotation[1]).dot(rotation[2]).dot(P.T()).T() + translation;
+        translation_scalars_ = Mat(std::vector<float>{x[0][0], x[0][1], x[0][2]}).T();
+        src_transformed_ = rotation_matrix_[0].dot(rotation_matrix_[1])
+            .dot(rotation_matrix_[2]).dot(src_.T()).T() + translation_scalars_;
+        if (chi < treshold)
+            break;
     }
-    //corresp_values.push_back(corresp_values[corresp_values.size() - 1]);
-    return P_copy;
-}
+    if (chi >= treshold)
+        std::cerr << "ICP did not converge in " << iterations << " iterations, and have a chi value of " << chi << "\n";
 
-/*
-def icp_least_squares(P, Q, iterations=30, kernel=lambda distance: 1.0):
-    x = np.zeros((3, 1))
-    chi_values = []
-    x_values = [x.copy()]  # Initial value for transformation.
-    P_values = [P.copy()]
-    P_copy = P.copy()
-    corresp_values = []
-    for i in range(iterations):
-        rot = R(x[2])
-        t = x[0:2]
-        correspondences = get_correspondence_indices(P_copy, Q)
-        corresp_values.append(correspondences)
-        H, g, chi = prepare_system(x, P, Q, correspondences, kernel)
-        dx = np.linalg.lstsq(H, -g, rcond=None)[0]
-        x += dx
-        x[2] = atan2(sin(x[2]), cos(x[2])) # normalize angle
-        chi_values.append(chi.item(0))
-        x_values.append(x.copy())
-        rot = R(x[2])
-        t = x[0:2]
-        P_copy = rot.dot(P.copy()) + t
-        P_values.append(P_copy)
-    corresp_values.append(corresp_values[-1])
-    return P_values, chi_values, corresp_values
-*/
+    return *this;
+}

@@ -15,20 +15,42 @@ typedef std::vector<std::tuple<std::size_t, std::size_t>> Correspondences;
 class icp
 {
 public:
-    icp(int n_dim);
-    Mat icp_least_squares(Mat P, Mat Q);
+    icp(const Mat& src, const Mat& ref)
+        : src_(src)
+        , ref_(ref)
+        , src_transformed_(src.copy())
+        , translation_scalars_(Mat(1, 3))
+        , rotation_matrix_(std::array<Mat, 3>{Mat(3, 3), Mat(3, 3), Mat(3, 3)})
+        {}
+    icp& fit(int iterations = 30, int treshold = 0.01);
+
+    Mat get_src_transformed() {
+        return src_transformed_;
+    }
+
+    Mat get_translation_scalars() {
+        return translation_scalars_;
+    }
+
+    std::array<Mat, 3> get_rotation_matrix() {
+        return rotation_matrix_;
+    }
 
 private:
-    int _n_dim;
-
     using prep_sys_t = std::tuple<Mat, Mat, float>;
 
+    Correspondences get_correspondence_indices(const Mat& P, const Mat& Q);
     std::array<Mat, 3> get_r(const float theta1, const float theta2, const float theta3) const;
     std::array<Mat, 3> get_dr(const float theta1, const float theta2, const float theta3) const;
     Mat get_jacobian(const Mat&, const Mat&) const;
     Mat err(const Mat& x, const Mat& p_point, const Mat& q_point) const;
     prep_sys_t prepare_system(Mat& x, Mat& P, Mat& Q, Correspondences& corr) const;
+
+    Mat src_;
+    Mat ref_;
+    Mat src_transformed_;
+    Mat translation_scalars_;
+    std::array<Mat, 3> rotation_matrix_;
 };
-Correspondences get_correspondence_indices(const Mat& P, const Mat& Q);
 
 #endif //GPGPU_ICP_H
