@@ -9,7 +9,7 @@ OBJS_MATLAB=$(subst .cc,.o,$(SRCS_MATLAB))
 
 EIGEN_PATH=./eigen-3.3.8
 
-all: matlab
+all: lstsq
 
 lstsq:
 	$(CXX) $(CXXFLAGS) -o icp -I $(EIGEN_PATH) $(SRCS_LSTSQ)
