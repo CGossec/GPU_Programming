@@ -72,27 +72,6 @@ float norm(const Mat& p) {
     return std::sqrt(r);
 }
 
-// For each point in P find closest one in Q.
-Correspondences icp::get_correspondence_indices(const Mat& P, const Mat& Q) {
-    Correspondences correspondences;
-    for (int i = 0; i < P.m_height; i++) {
-        auto p_point = Mat({P[i]});
-        auto min_dist = std::numeric_limits<float>::max();
-        int chosen_idx = -1;
-        for (int j = 0; j < Q.m_height; j++) {
-            Mat q_point = Mat({Q[j]});
-            auto distance_coords = p_point - q_point;
-            auto dist = norm(distance_coords);
-            if (dist < min_dist){
-                min_dist = dist;
-                chosen_idx = j;
-            }
-        }
-        correspondences.push_back(std::tuple<std::size_t, std::size_t>{i, chosen_idx});
-    }
-    return correspondences;
-}
-
 Mat icp::err(const Mat& x, const Mat& p_point, const Mat& q_point) const {
     auto rotation = this->get_r(x[0][3], x[0][4], x[0][5]);
     auto translation = Mat(std::vector<float>{x[0][0], x[0][1], x[0][2]});
@@ -100,13 +79,13 @@ Mat icp::err(const Mat& x, const Mat& p_point, const Mat& q_point) const {
     return prediction - q_point;
 }
 
-icp::prep_sys_t icp::prepare_system(Mat& x, Mat& P, Mat& Q, Correspondences& corr) const {
+icp::prep_sys_t icp::prepare_system(Mat& x, Mat& P, Mat& Q) const {
     Mat H = Mat(6,6);
     Mat G = Mat(6,1);
     float chi = 0.;
-    for (auto elm : corr){
-        Mat p_point = Mat({P[std::get<0>(elm)]});
-        Mat q_point = Mat({Q[std::get<1>(elm)]});
+    for (int i = 0; i < P.m_height; ++i) {
+        Mat p_point = Mat({P[i]});
+        Mat q_point = Mat({Q[i]});
         auto e = this->err(x, p_point, q_point);
         auto J = this->get_jacobian(x, p_point);
         H = H + J.T().dot(J);
@@ -118,13 +97,13 @@ icp::prep_sys_t icp::prepare_system(Mat& x, Mat& P, Mat& Q, Correspondences& cor
 }
 
 // Compute the 3 rotation matrix and the 3 translation scalars to transform src_ in ref_
-icp& icp::fit(int iterations, int treshold){
+icp& icp::fit(int iterations, float treshold){
     auto x = Mat(1,6); // 3 rotation factors + 3 translation
     float chi = 0.;
-    for (int i = 0; i < iterations; ++i){
+    int i = 0;
+    for (; i < iterations; ++i){
         rotation_matrix_ = get_r(x[0][3], x[0][4], x[0][5]);
-        auto correspondences = get_correspondence_indices(src_transformed_, ref_);
-        auto prep_sys = prepare_system(x, src_, ref_, correspondences);
+        auto prep_sys = prepare_system(x, src_, ref_);
         auto H = std::get<0>(prep_sys);
         auto G = std::get<1>(prep_sys);
         chi = std::get<2>(prep_sys);
@@ -138,6 +117,8 @@ icp& icp::fit(int iterations, int treshold){
     }
     if (chi >= treshold)
         std::cerr << "ICP did not converge in " << iterations << " iterations, and have a chi value of " << chi << "\n";
+    else
+        std::cerr << "ICP converge in " << i << " iterations, and have a chi value of " << chi << "\n";
 
     return *this;
 }

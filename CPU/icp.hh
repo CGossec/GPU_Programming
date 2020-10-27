@@ -22,7 +22,7 @@ public:
         , translation_scalars_(Mat(1, 3))
         , rotation_matrix_(std::array<Mat, 3>{Mat(3, 3), Mat(3, 3), Mat(3, 3)})
         {}
-    icp& fit(int iterations = 30, int treshold = 0.01);
+    icp& fit(int iterations = 30, float treshold = 0.0001);
 
     Mat get_src_transformed() {
         return src_transformed_;
@@ -39,12 +39,11 @@ public:
 private:
     using prep_sys_t = std::tuple<Mat, Mat, float>;
 
-    Correspondences get_correspondence_indices(const Mat& P, const Mat& Q);
     std::array<Mat, 3> get_r(const float theta1, const float theta2, const float theta3) const;
     std::array<Mat, 3> get_dr(const float theta1, const float theta2, const float theta3) const;
     Mat get_jacobian(const Mat&, const Mat&) const;
     Mat err(const Mat& x, const Mat& p_point, const Mat& q_point) const;
-    prep_sys_t prepare_system(Mat& x, Mat& P, Mat& Q, Correspondences& corr) const;
+    prep_sys_t prepare_system(Mat& x, Mat& P, Mat& Q) const;
 
     Mat src_;
     Mat ref_;
