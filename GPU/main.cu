@@ -34,7 +34,7 @@
 
 int main(int argc, char const *argv[])
 {
-    Mat A = Mat<<<1, 6>>>(10, 8, 5);
+    Mat A = Mat(10, 8, 5);
     A.print()
     // if (argc != 3) {
     //     std::cerr << "Usage: " << argv[0] << " path/to/test/file path/to/model/file";
