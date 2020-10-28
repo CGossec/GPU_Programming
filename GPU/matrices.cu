@@ -7,6 +7,7 @@ __global__ void mat_init(float** buffer, int height, int width, int value) {
     if (i >= height || j >= width) return;
 
     (*buffer)[i * height + j] = value;
+    printf("buffer value at index %d: %d", i*height+j, (*buffer)[i * height + j]);
 }
 
 Mat::Mat(int height, int width)
@@ -17,7 +18,7 @@ Mat::Mat(int height, int width)
     float* d_buffer = NULL;
     cudaMalloc((void **)&d_buffer, height * width * sizeof(float));
     
-    mat_init<<<1, 6>>>(&d_buffer, height, width, 0);
+    mat_init<<<1, 1>>>(&d_buffer, height, width, 0);
     cudaMemcpy(this->m_buffer, d_buffer, height*width*sizeof(float), cudaMemcpyDeviceToHost);
     cudaFree(d_buffer);
 }
@@ -30,7 +31,7 @@ Mat::Mat(int height, int width, float value)
     float* d_buffer = NULL;
     cudaMalloc((void **)&d_buffer, height * width * sizeof(float));
 
-    mat_init<<<1, 6>>>(&d_buffer, height, width, value);
+    mat_init<<<1, 1>>>(&d_buffer, height, width, value);
     cudaMemcpy(this->m_buffer, d_buffer, height*width*sizeof(float), cudaMemcpyDeviceToHost);
     cudaFree(d_buffer);
 }
@@ -239,7 +240,7 @@ void Mat::print() const {
     for (int i = 0; i < this->m_height; ++i) {
         std::cout << "  { ";
         for (int j = 0; j < this->m_width;) {
-            std::cout << this->m_buffer[i][j];
+            std::cout << this->m_buffer[i * this->m_height + j];
             if (++j < this->m_width)
                 std::cout << ", ";
         }
