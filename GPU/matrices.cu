@@ -2,35 +2,31 @@
 #include <assert.h>
 
 __global__ void mat_init(float* buffer, int height, int width, int value) {
-    int i = blockDim.x*blockIdx.x + threadIdx.x;
-    int j = blockDim.y*blockIdx.y + threadIdx.y;
-    if (i >= height || j >= width) return;
+    int i = blockDim.x * blockIdx.x + threadIdx.x;
+    //int j = blockDim.y * blockIdx.y + threadIdx.y;
+    if (i >= width * height) return;// || j >= height) return;
 
-    buffer[i * height + j] = value;
+    buffer[i] = value;
 }
 
-Mat::Mat(int height, int width)
-    : m_height{height}
-    , m_width{width}
-{
-    this->m_buffer = (float*)malloc(height * width * sizeof(float));
-    float* d_buffer = NULL;
-    cudaMalloc((void **)&d_buffer, height * width * sizeof(float));
-    
-    mat_init<<<10, 10>>>(d_buffer, height, width, 0);
-    cudaMemcpy(this->m_buffer, d_buffer, height*width*sizeof(float), cudaMemcpyDeviceToHost);
-    cudaFree(d_buffer);
-}
+Mat::Mat(int height, int width) { Mat(height, width, 0); }
 
 Mat::Mat(int height, int width, float value)
     : m_height{height}
     , m_width{width}
 {
+		std::size_t buffer_size = height * width;
     this->m_buffer = (float*)malloc(height * width * sizeof(float));
     float* d_buffer = NULL;
     cudaMalloc((void **)&d_buffer, height * width * sizeof(float));
 
-    mat_init<<<10, 10>>>(d_buffer, height, width, value);
+    cudaDeviceProp prop;
+		cudaGetDeviceProperties(&prop, 0);
+		std::size_t threadsPerBlock = (buffer_size < prop.maxThreadsPerBlock) ? buffer_size : prop.maxThreadsPerBlock;
+
+		std::size_t nbBlocks = buffer_size / threadsPerBlock + 1;
+    mat_init<<<nbBlocks, threadsPerBlock>>>(d_buffer, height, width, value);
+		cudaDeviceSynchronize();
     cudaMemcpy(this->m_buffer, d_buffer, height*width*sizeof(float), cudaMemcpyDeviceToHost);
     cudaFree(d_buffer);
 }
@@ -239,7 +235,7 @@ void Mat::print() const {
     for (int i = 0; i < this->m_height; ++i) {
         std::cout << "  { ";
         for (int j = 0; j < this->m_width;) {
-            std::cout << this->m_buffer[i * this->m_height + j];
+            std::cout << this->m_buffer[i * this->m_width + j];
             if (++j < this->m_width)
                 std::cout << ", ";
         }
