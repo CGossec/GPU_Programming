@@ -1,8 +1,7 @@
 #pragma once
 
-#include <array>
 #include <iostream>
-
+#include <cuda.h>
 #include <Eigen/Eigenvalues>
 
 struct EigenVal{
