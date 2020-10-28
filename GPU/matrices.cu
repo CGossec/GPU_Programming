@@ -1,14 +1,12 @@
 #include "matrices.cuh"
 #include <assert.h>
 
-__global__ void mat_init(float** buffer, int height, int width, int value) {
-    int i = blockDim.x*blockIdx.x + threadIdx.x;
-    int j = blockDim.y*blockIdx.y + threadIdx.y;
-    if (i >= height || j >= width) return;
+// __global__ void mat_init(float* buffer, int height, int width, int value) {
+//     int i = blockDim.x*blockIdx.x + threadIdx.x;
+//     int j = blockDim.y*blockIdx.y + threadIdx.y;
+//     if (i >= height || j >= width) return;
 
-    (*buffer)[i * height + j] = value;
-    printf("buffer value at index %d: %d", i*height+j, (*buffer)[i * height + j]);
-}
+// }
 
 Mat::Mat(int height, int width)
     : m_height{height}
@@ -18,7 +16,8 @@ Mat::Mat(int height, int width)
     float* d_buffer = NULL;
     cudaMalloc((void **)&d_buffer, height * width * sizeof(float));
     
-    mat_init<<<1, 1>>>(&d_buffer, height, width, 0);
+    // mat_init<<<1, 1>>>(&d_buffer, height, width, 0);
+    cudaMemset(d_buffer, 0, height*width);
     cudaMemcpy(this->m_buffer, d_buffer, height*width*sizeof(float), cudaMemcpyDeviceToHost);
     cudaFree(d_buffer);
 }
@@ -31,7 +30,8 @@ Mat::Mat(int height, int width, float value)
     float* d_buffer = NULL;
     cudaMalloc((void **)&d_buffer, height * width * sizeof(float));
 
-    mat_init<<<1, 1>>>(&d_buffer, height, width, value);
+    // mat_init<<<1, 1>>>(&d_buffer, height, width, value);
+    cudaMemset(d_buffer, value, height*width);
     cudaMemcpy(this->m_buffer, d_buffer, height*width*sizeof(float), cudaMemcpyDeviceToHost);
     cudaFree(d_buffer);
 }
