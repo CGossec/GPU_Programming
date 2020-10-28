@@ -4,9 +4,17 @@
 __global__ void mat_init(float* buffer, int height, int width, int value) {
     int i = blockDim.x * blockIdx.x + threadIdx.x;
     //int j = blockDim.y * blockIdx.y + threadIdx.y;
-    if (i >= width * height) return;// || j >= height) return;
+    if (i >= width * height) return;
 
     buffer[i] = value;
+}
+
+__global__ void mat_cpy(float* buffer, int height, int width, const float* src){
+    int i = blockDim.x * blockIdx.x + threadIdx.x;
+    //int j = blockDim.y * blockIdx.y + threadIdx.y;
+    if (i >= width * height) return;
+
+    buffer[i] = src[i];
 }
 
 Mat::Mat(int height, int width) { Mat(height, width, 0); }
@@ -15,56 +23,40 @@ Mat::Mat(int height, int width, float value)
     : m_height{height}
     , m_width{width}
 {
-		std::size_t buffer_size = height * width;
+    std::size_t buffer_size = height * width;
     this->m_buffer = (float*)malloc(height * width * sizeof(float));
     float* d_buffer = NULL;
     cudaMalloc((void **)&d_buffer, height * width * sizeof(float));
 
     cudaDeviceProp prop;
-		cudaGetDeviceProperties(&prop, 0);
-		std::size_t threadsPerBlock = (buffer_size < prop.maxThreadsPerBlock) ? buffer_size : prop.maxThreadsPerBlock;
+    cudaGetDeviceProperties(&prop, 0);
+    std::size_t threadsPerBlock = (buffer_size < prop.maxThreadsPerBlock) ? buffer_size : prop.maxThreadsPerBlock;
 
-		std::size_t nbBlocks = buffer_size / threadsPerBlock + 1;
+    std::size_t nbBlocks = buffer_size / threadsPerBlock + 1;
     mat_init<<<nbBlocks, threadsPerBlock>>>(d_buffer, height, width, value);
-		cudaDeviceSynchronize();
+    cudaDeviceSynchronize();
     cudaMemcpy(this->m_buffer, d_buffer, height*width*sizeof(float), cudaMemcpyDeviceToHost);
     cudaFree(d_buffer);
 }
 
-// __global__ Mat::Mat(const float** list_init){
-//     auto height = list_init.size();
-//     auto width = list_init[0].size();
+Mat::Mat(float* list_init, int height, int width)
+    //list_init should be already allocated
+    : m_height(height)
+    , m_width(width)
+    , m_buffer(list_init)
+    {}
 
-//     for (std::size_t i = 0; i < height; ++i)
-//         if (list_init[i].size() != width)
-//             throw "Invalid list initialization, internal vectors were not of same width.";
+Mat::Mat(float* list_init, int width)
+    : m_height(1)
+    , m_width(width)
+    , m_buffer(list_init)
+    {}
 
-//     m_height = height;
-//     m_width = width;
-//     m_buffer = list_init;
-// }
-
-// __global__ Mat::Mat(const float* list_init, int height){ // Need to fix
-//     this->m_width = 1;
-//     this->m_height = height;
-//     for (int i = 0; i < height; ++i)
-//         m_buffer.push_back(std::vector<float>{list_init[i]});
-// }
-
-// __global__ Mat::Mat(const Mat& m)
-//     : m_height(m.m_height)
-//     , m_width(m.m_width)
-// {
-//     int i = blockDim.x*blockId.x + threadId.x;
-//     int j = blockDim.y*blockId.y + threadId.y;
-//     if (i >= m.m_height || j >= m.m_width) return;
- 
-//     if (i == 0 && j == 0) {
-//         auto err = cudaMalloc(&this->m_buffer, m.m_height*m.m_width*sizeof(float));
-//         assert(err != NULL);
-//     }
-//     this->m_buffer[i][j] = m.m_buffer[i][j];
-// }
+Mat::Mat(const Mat& m)
+    : m_height(m.height)
+    , m_width(m.width)
+    , m_buffer(m.m_buffer)
+    {}
 
 // Mat Mat::eye(int dim)
 // {

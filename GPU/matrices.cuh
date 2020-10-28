@@ -14,9 +14,9 @@ struct Mat
     Mat() = delete;
     Mat(int height, int width);
     Mat(int height, int width, float value);
-    // __global__ Mat(const float** list_init);
-    // __global__ Mat(const float* list_init, int size);
-    // __global__ Mat(const Mat& m);
+    Mat(float* list_init, int, int);
+    Mat(float* list_init, int, );
+    Mat(Mat);
 
     // static Mat eye(int dim);
 
