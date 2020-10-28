@@ -38,8 +38,8 @@ struct Mat
     void print() const;
     // __global__ void copy() const;
 
-    // int m_height;
-    // int m_width;
+    int m_height;
+    int m_width;
 
-    // float** m_buffer;
+    float** m_buffer;
 };
