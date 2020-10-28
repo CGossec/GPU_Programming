@@ -13,9 +13,15 @@ Mat::Mat(int height, int width)
     : m_height{height}
     , m_width{width}
 {
-    this->m_buffer = (float**)malloc(height * width * sizeof(float));
+    this->m_buffer = (float**)malloc(height * sizeof(float*));
+    for (int i = 0; i < height; i++) {
+        this->buffer[i] = (float*)malloc(width * sizeof(float));
+    }
     float** d_buffer = NULL;
-    cudaMalloc((void **)&d_buffer, height * width * sizeof(float));
+    cudaMalloc((void **)&d_buffer, height * sizeof(float*));
+    for (int i = 0; i < height; i++) {
+        cudaMalloc((void **)&(d_buffer[i]), width * sizeof(float));
+    }
     
     mat_init<<<1, 6>>>(&d_buffer, height, width, 0);
     cudaMemcpy(this->m_buffer, d_buffer, height*width*sizeof(float), cudaMemcpyDeviceToHost);
@@ -26,9 +32,16 @@ Mat::Mat(int height, int width, float value)
     : m_height{height}
     , m_width{width}
 {
-    this->m_buffer = (float**)malloc(height * width * sizeof(float));
+    this->m_buffer = (float**)malloc(height * sizeof(float*));
+    for (int i = 0; i < height; i++) {
+        this->buffer[i] = (float*)malloc(width * sizeof(float));
+    }
     float** d_buffer = NULL;
-    cudaMalloc((void **)&d_buffer, height * width * sizeof(float));
+    cudaMalloc((void **)&d_buffer, height * sizeof(float*));
+    for (int i = 0; i < height; i++) {
+        cudaMalloc((void **)&(d_buffer[i]), width * sizeof(float));
+    }
+
     
     mat_init<<<1, 6>>>(&d_buffer, height, width, value);
     cudaMemcpy(this->m_buffer, d_buffer, height*width*sizeof(float), cudaMemcpyDeviceToHost);
