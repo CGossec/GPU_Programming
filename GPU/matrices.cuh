@@ -41,5 +41,5 @@ struct Mat
     int m_height;
     int m_width;
 
-    float** m_buffer;
+    float* m_buffer;
 };
