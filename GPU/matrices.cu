@@ -59,8 +59,8 @@ Mat::Mat(float* list_init, int height, int width)
     checkCUDAError(cudaMemcpy(this->m_buffer, list_init, buffer_size * sizeof(float), cudaMemcpyHostToHost));
 }
 
-Mat::Mat(float* list_init, int width)
-    : Mat(list_init, 1, width)
+Mat::Mat(float* list_init, int height)
+    : Mat(list_init, height, 1)
     {}
 
 Mat::Mat(const Mat& m)
