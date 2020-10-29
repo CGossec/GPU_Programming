@@ -23,7 +23,7 @@ struct Mat
     static Mat eye(int dim);
 
     Mat dot(const Mat& other);
-    // __global__ void T(Mat* ret);
+    Mat T();
     // Mat mean() const;
 
     // __global__ void operator+(const Mat&, Mat*) const;

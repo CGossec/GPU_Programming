@@ -57,6 +57,7 @@ int main(int argc, char const *argv[])
     K.print();
     L.print();
     K.dot(L).print();
+    K.T().print();
     // if (argc != 3) {
     //     std::cerr << "Usage: " << argv[0] << " path/to/test/file path/to/model/file";
     //     return 1;

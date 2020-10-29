@@ -131,17 +131,39 @@ Mat Mat::dot(const Mat& other)
     return ret;
 }
 
-// __global__ void Mat::T(Mat* ret) {
-//     if (ret == NULL) {
-//         // Initialize the return matrix
-//         ret = &Mat(this->m_width, this->m_height);
-//     }
+__global__ void T_kernel(float* self, float* ret, int s_height, int s_width) {
+    int i = blockDim.x * blockIdx.x + threadIdx.x;
+    int j = blockDim.y * blockIdx.y + threadIdx.y;
 
-//     int i = blockDim.x*blockId.x + threadId.x;
-//     int j = blockDim.y*blockId.y + threadId.y;
-//     if (i >= this->m_height || j >= this->m_width) return;
-//     ret->m_buffer[j][i] = this->m_buffer[i][j];
-// }
+    if (i >= s_height || j >= s_width) return;
+    ret[j * s_height + i] = self[i * s_width + j];
+}
+
+Mat Mat::T() {
+    Mat ret(m_width, m_height);
+    float* ret_buffer;
+    checkCUDAError(cudaMalloc(&ret_buffer, ret.m_height * ret.m_width* sizeof(float)));
+
+    float* self_buffer;
+    checkCUDAError(cudaMalloc(&self_buffer, m_height * m_width* sizeof(float)));
+    checkCUDAError(cudaMemcpy(self_buffer, m_buffer, m_height * m_width * sizeof(float), cudaMemcpyHostToDevice));
+
+    cudaDeviceProp prop;
+    cudaGetDeviceProperties(&prop, 0);
+    std::size_t buffer_size = ret.m_height * ret.m_width;
+    std::size_t threadsPerBlock = (buffer_size < prop.maxThreadsPerBlock)
+        ? buffer_size : prop.maxThreadsPerBlock;
+    std::size_t nbBlocks = buffer_size / threadsPerBlock + 1;
+    T_kernel<<<nbBlocks, threadsPerBlock>>>(self_buffer, ret_buffer, m_height, m_width);
+    cudaDeviceSynchronize();
+
+    checkCUDAError(cudaMemcpy(ret.m_buffer, ret_buffer, ret.m_height * ret.m_width * sizeof(float),
+                              cudaMemcpyDeviceToHost));
+
+    cudaFree(ret_buffer);
+    cudaFree(self_buffer);
+    return ret;
+}
 
 // float* Mat::operator[](const int pos) const {
 //     return this->m_buffer[pos];
