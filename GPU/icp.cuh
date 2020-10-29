@@ -8,7 +8,7 @@
 #include <tuple>
 #include <iostream>
 #include <limits>
-#include "matrices.hh"
+#include "matrices.cuh"
 
 typedef std::vector<std::tuple<std::size_t, std::size_t>> Correspondences;
 
