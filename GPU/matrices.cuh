@@ -26,7 +26,7 @@ struct Mat
     Mat T();
     // Mat mean() const;
 
-    // __global__ void operator+(const Mat&, Mat*) const;
+    Mat operator+(const Mat& other) const;
     // __global__ void operator-(const Mat&, Mat*) const;
     // __global__ void operator*(const float&, Mat*) const;
     // __global__ void operator*(const Mat&, Mat*) const;

@@ -169,42 +169,88 @@ Mat Mat::T() {
     return ret;
 }
 
-// float* Mat::operator[](const int pos) const {
-//     return this->m_buffer[pos];
-// }
+__global__ void add_kernel(float* self, float* other, float* ret, int s_height, int s_width) {
+    int th = blockDim.x * blockIdx.x + threadIdx.x;
 
-// const float* Mat::operator[](const int pos) {
-//     return this->m_buffer[pos];
-// }
+    if (th >= s_height * s_width) return;
+    ret[th] = self[th] + other[th];
+}
 
-// __global__ void Mat::operator+(const Mat& other, Mat* ret) const{
-//     if ((this->m_width != other.m_width) || (m_height != other.m_height && other.m_height != 1))
-//     {
-//         printf("Could not add matrices, dimensions do not match {%i, %i} vs {%i, %i}",
-//             this->m_height, this->m_width, other.m_height, other.m_width);
-//         throw "Invalid addition";
-//     }
+__global__ void add_broadcast_kernel(float* self, float* other, float* ret, int s_height, int s_width) {
+    int th = blockDim.x * blockIdx.x + threadIdx.x;
 
-//     if (ret == NULL) {
-//         // Initialize the return matrix
-//         ret = Mat(this->m_height, this->m_width);
-//     }
+    if (th >= s_height * s_width) return;
+    int i = th / s_width; //0 to height
+    int j = th % s_width; //0 to width
+    ret[i * s_width + j] = self[i * s_width + j] + other[j];
+}
 
-//     if (m_height == other.m_height)
-//     {
-//         int i = blockDim.x*blockId.x + threadId.x;
-//         int j = blockDim.y*blockId.y + threadId.y;
-//         if (i >= this->m_height || j >= this->m_width) return;    
-//         ret->m_buffer[i][j] = this->m_buffer[i][j] + other.m_buffer[i][j];
-//     }
-//     else
-//     {
-//         int i = blockDim.x*blockId.x + threadId.x;
-//         int j = blockDim.y*blockId.y + threadId.y;
-//         if (i >= this->m_height || j >= this->m_width) return;    
-//         ret->m_buffer[i][j] = this->m_buffer[i][j] + other.m_buffer[0][j];
-//     }
-// }
+Mat Mat::operator+(const Mat& other) const{
+    if ((this->m_width != other.m_width) || (m_height != other.m_height && other.m_height != 1))
+    {
+        printf("Could not add matrices, dimensions do not match {%i, %i} vs {%i, %i}",
+            this->m_height, this->m_width, other.m_height, other.m_width);
+        throw "Invalid addition";
+    }
+
+
+    Mat ret(m_height, m_width);
+    float* ret_buffer;
+    checkCUDAError(cudaMalloc(&ret_buffer, ret.m_height * ret.m_width* sizeof(float)));
+
+    float* self_buffer;
+    checkCUDAError(cudaMalloc(&self_buffer, m_height * m_width* sizeof(float)));
+    checkCUDAError(cudaMemcpy(self_buffer, m_buffer, m_height * m_width * sizeof(float), cudaMemcpyHostToDevice));
+    float* other_buffer;
+    checkCUDAError(cudaMalloc(&other_buffer, other.m_height * other.m_width * sizeof(float)));
+    checkCUDAError(cudaMemcpy(other_buffer, other.m_buffer,
+                              other.m_height * other.m_width * sizeof(float), cudaMemcpyHostToDevice));
+
+    cudaDeviceProp prop;
+    cudaGetDeviceProperties(&prop, 0);
+    std::size_t buffer_size = ret.m_height * ret.m_width;
+    std::size_t threadsPerBlock = (buffer_size < prop.maxThreadsPerBlock)
+        ? buffer_size : prop.maxThreadsPerBlock;
+    std::size_t nbBlocks = buffer_size / threadsPerBlock + 1;
+
+    if (m_height == other.m_height)
+        add_kernel<<<nbBlocks, threadsPerBlock>>>(self_buffer, other_buffer, ret_buffer,
+                                                  m_height, m_width);
+    else
+        add_broadcast_kernel<<<nbBlocks, threadsPerBlock>>>(self_buffer, other_buffer, ret_buffer,
+                                                  m_height, m_width);
+
+    cudaDeviceSynchronize();
+
+    checkCUDAError(cudaMemcpy(ret.m_buffer, ret_buffer, ret.m_height * ret.m_width * sizeof(float),
+                              cudaMemcpyDeviceToHost));
+
+    cudaFree(ret_buffer);
+    cudaFree(self_buffer);
+    cudaFree(other_buffer);
+    return ret;
+}
+
+//void Mat::operator+(const Mat& other, Mat* ret) const{
+//    if ((this->m_width != other.m_width) || (m_height != other.m_height && other.m_height != 1))
+//    {
+//        printf("Could not add matrices, dimensions do not match {%i, %i} vs {%i, %i}",
+//            this->m_height, this->m_width, other.m_height, other.m_width);
+//        throw "Invalid addition";
+//    }
+//
+//    if (ret == NULL) {
+//        // Initialize the return matrix
+//        ret = Mat(this->m_height, this->m_width);
+//    }
+//
+//    if (m_height == other.m_height)
+//    {
+//        ret->m_buffer[i][j] = this->m_buffer[i][j] + other.m_buffer[i][j];
+//    } else {
+//        ret->m_buffer[i][j] = this->m_buffer[i][j] + other.m_buffer[0][j];
+//    }
+//}
 
 // __global__ void Mat::operator-(const Mat& other, Mat* ret) const{
 //     if ((this->m_width != other.m_width) || (m_height != other.m_height && other.m_height != 1))

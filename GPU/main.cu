@@ -68,6 +68,11 @@ int main(int argc, char const *argv[])
     M.print();
     M.T().print();
 
+    (K + K).print();
+    Mat O(1, 3);
+    for (int i = 0; i < 3; ++i)
+        O.m_buffer[i] = i * 3;
+    (K + O).print();
 
     // if (argc != 3) {
     //     std::cerr << "Usage: " << argv[0] << " path/to/test/file path/to/model/file";
