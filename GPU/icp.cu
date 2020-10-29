@@ -164,21 +164,9 @@ icp& icp::fit(int iterations, float threshold){
         v[1] = x.m_buffer[1];
         v[2] = x.m_buffer[2];
         translation_scalars_ = Mat(v, 3).T();
-        int r_width = rotation_matrix_.m_width;
-        float* vr0 = (float*)calloc(r_width, sizeof(float));
-        float* vr1 = (float*)calloc(r_width, sizeof(float));
-        float* vr2 = (float*)calloc(r_width, sizeof(float));
-
-        for (int i = 0; i < r_width; i++) {
-            vr0[i] = rotation_matrix_[i];
-            vr1[i] = rotation_matrix_[r_width + i];
-            vr2[i] = rotation_matrix_[2 * r_width + i];
-        }
-        Mat r0 = Mat(vr0, r_width);
-        Mat r1 = Mat(vr1, r_width);
-        Mat r2 = Mat(vr2, r_width);
-        src_transformed_ = r0.dot(r1).dot(r2).dot(src_.T()).T() + translation_scalars_;
-	free(prep_sys);
+        src_transformed_ = rotation_matrix_[0].dot(rotation_matrix_[1])
+            .dot(rotation_matrix_[2]).dot(src_.T()).T() + translation_scalars_;
+	    free(prep_sys);
         if (chi < threshold)
             break;
     }
