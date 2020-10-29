@@ -24,18 +24,14 @@ struct Mat
 
     Mat dot(const Mat& other);
     Mat T();
-    // Mat mean() const;
 
     Mat operator+(const Mat& other) const;
     Mat operator-(const Mat& other) const;
-    // __global__ void operator*(const float&, Mat*) const;
-    // __global__ void operator*(const Mat&, Mat*) const;
 
-    // EigenVal* eigen() const;
-    // Mat inverse() const;
+    Mat inverse() const;
 
     void print() const;
-    // __global__ void copy() const;
+    Mat copy() const;
 
     int m_height;
     int m_width;

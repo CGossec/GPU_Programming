@@ -67,6 +67,9 @@ Mat::Mat(const Mat& m)
     : Mat(m.m_buffer, m.m_height, m.m_width)
     {}
 
+Mat Mat::copy() const
+{ return Mat(m_buffer, m_height, m_width);}
+
 Mat::~Mat(){
     free(this->m_buffer);
 }
