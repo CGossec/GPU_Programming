@@ -24,10 +24,10 @@ Mat parse_file(std::ifstream &file) {
             std::string substr;
             std::getline(ss,substr, ',');
             float point = std::stof(substr);
-            results = realloc(results, ++res_size * sizeof(float));
+            results = (float*)realloc(results, ++res_size * sizeof(float));
             results[index++] = point;
         }
-        i++;
+        height++;
     }
     Mat res = Mat(results, height, index / height);
     return res;

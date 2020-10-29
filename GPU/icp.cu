@@ -116,7 +116,7 @@ Mat icp::err(const Mat& x, const Mat& p_point, const Mat& q_point) const {
     return prediction - q_point;
 }
 
-prep_sys_t icp::prepare_system(Mat& x, Mat& P, Mat& Q) const {
+prep_sys_t* icp::prepare_system(Mat& x, Mat& P, Mat& Q) const {
     Mat H = Mat(6,6);
     Mat G = Mat(6,1);
     float chi = 0.;
@@ -154,9 +154,9 @@ icp& icp::fit(int iterations, float threshold){
     for (; i < iterations; ++i){
         rotation_matrix_ = get_r(x.m_buffer[3], x.m_buffer[4], x.m_buffer[5]);
         auto prep_sys = prepare_system(x, src_, ref_);
-        auto H = prep_sys.h;
-        auto G = prep_sys.g;
-        chi = prep_sys.chi;
+        Mat H = prep_sys->h;
+        Mat G = prep_sys->g;
+        float chi = prep_sys->chi;
         auto dx = H.inverse().dot(G).T();
         x = x - dx;
         float* v = (float*)calloc(3, sizeof(float));
@@ -164,7 +164,7 @@ icp& icp::fit(int iterations, float threshold){
         v[1] = x.m_buffer[1];
         v[2] = x.m_buffer[2];
         translation_scalars_ = Mat(v, 3).T();
-        auto r_width = rotation_matrix_.m_width;
+        int r_width = rotation_matrix_.m_width;
         float* vr0 = (float*)calloc(r_width, sizeof(float));
         float* vr1 = (float*)calloc(r_width, sizeof(float));
         float* vr2 = (float*)calloc(r_width, sizeof(float));
@@ -178,6 +178,7 @@ icp& icp::fit(int iterations, float threshold){
         Mat r1 = Mat(vr1, r_width);
         Mat r2 = Mat(vr2, r_width);
         src_transformed_ = r0.dot(r1).dot(r2).dot(src_.T()).T() + translation_scalars_;
+	free(prep_sys);
         if (chi < threshold)
             break;
     }
