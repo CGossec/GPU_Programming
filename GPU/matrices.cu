@@ -24,7 +24,7 @@ Mat::Mat(int height, int width, float value)
     , m_width{width}
 {
     std::size_t buffer_size = height * width;
-    this->m_buffer = (float*)malloc(height * width * sizeof(float));
+    this->m_buffer = (float*) malloc(height * width * sizeof(float));
     float* d_buffer = NULL;
     cudaMalloc((void **)&d_buffer, height * width * sizeof(float));
 
@@ -53,10 +53,15 @@ Mat::Mat(float* list_init, int width)
     {}
 
 Mat::Mat(const Mat& m)
-    : m_height(m.height)
-    , m_width(m.width)
+    //TODO deep copy
+    : m_height(m.m_height)
+    , m_width(m.m_width)
     , m_buffer(m.m_buffer)
     {}
+
+Mat::~Mat(){
+    free(this->m_buffer);
+}
 
 // Mat Mat::eye(int dim)
 // {

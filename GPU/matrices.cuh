@@ -15,8 +15,10 @@ struct Mat
     Mat(int height, int width);
     Mat(int height, int width, float value);
     Mat(float* list_init, int, int);
-    Mat(float* list_init, int, );
-    Mat(Mat);
+    Mat(float* list_init, int);
+    Mat(const Mat& src);
+
+    ~Mat();
 
     // static Mat eye(int dim);
 
