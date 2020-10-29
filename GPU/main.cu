@@ -53,11 +53,22 @@ int main(int argc, char const *argv[])
     free(v);
 
     Mat K = Mat(2,3,1);
-    Mat L = Mat(3,1,2);
+    for (int i = 0; i < 6; ++i)
+        K.m_buffer[i] = i;
+    Mat L = Mat(3,4,2);
+    for (int i = 0; i < 12; ++i)
+        L.m_buffer[i] = i + 6;
     K.print();
     L.print();
     K.dot(L).print();
-    K.T().print();
+
+    Mat M(3, 8);
+    for (int i = 0; i < 24; ++i)
+        M.m_buffer[i] = i;
+    M.print();
+    M.T().print();
+
+
     // if (argc != 3) {
     //     std::cerr << "Usage: " << argv[0] << " path/to/test/file path/to/model/file";
     //     return 1;

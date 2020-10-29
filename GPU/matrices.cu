@@ -1,4 +1,5 @@
 #include "matrices.cuh"
+#include <stdlib.h>
 #include <assert.h>
 
 #define checkCUDAError(val) { checkError((val), #val, __FILE__, __LINE__); }    // in-line regular function
@@ -133,16 +134,15 @@ Mat Mat::dot(const Mat& other)
 
 __global__ void T_kernel(float* self, float* ret, int s_height, int s_width) {
     int i = blockDim.x * blockIdx.x + threadIdx.x;
-    int j = blockDim.y * blockIdx.y + threadIdx.y;
 
-    if (i >= s_height || j >= s_width) return;
-    ret[j * s_height + i] = self[i * s_width + j];
+    if (i >= s_height * s_width) return;
+    ret[i / s_width + (i % s_width) * s_height] = self[i];
 }
 
 Mat Mat::T() {
     Mat ret(m_width, m_height);
     float* ret_buffer;
-    checkCUDAError(cudaMalloc(&ret_buffer, ret.m_height * ret.m_width* sizeof(float)));
+    checkCUDAError(cudaMalloc(&ret_buffer, ret.m_height * ret.m_width * sizeof(float)));
 
     float* self_buffer;
     checkCUDAError(cudaMalloc(&self_buffer, m_height * m_width* sizeof(float)));
