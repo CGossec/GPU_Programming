@@ -231,26 +231,67 @@ Mat Mat::operator+(const Mat& other) const{
     return ret;
 }
 
-//void Mat::operator+(const Mat& other, Mat* ret) const{
-//    if ((this->m_width != other.m_width) || (m_height != other.m_height && other.m_height != 1))
-//    {
-//        printf("Could not add matrices, dimensions do not match {%i, %i} vs {%i, %i}",
-//            this->m_height, this->m_width, other.m_height, other.m_width);
-//        throw "Invalid addition";
-//    }
-//
-//    if (ret == NULL) {
-//        // Initialize the return matrix
-//        ret = Mat(this->m_height, this->m_width);
-//    }
-//
-//    if (m_height == other.m_height)
-//    {
-//        ret->m_buffer[i][j] = this->m_buffer[i][j] + other.m_buffer[i][j];
-//    } else {
-//        ret->m_buffer[i][j] = this->m_buffer[i][j] + other.m_buffer[0][j];
-//    }
-//}
+__global__ void sub_kernel(float* self, float* other, float* ret, int s_height, int s_width) {
+    int th = blockDim.x * blockIdx.x + threadIdx.x;
+
+    if (th >= s_height * s_width) return;
+    ret[th] = self[th] - other[th];
+}
+
+__global__ void sub_broadcast_kernel(float* self, float* other, float* ret, int s_height, int s_width) {
+    int th = blockDim.x * blockIdx.x + threadIdx.x;
+
+    if (th >= s_height * s_width) return;
+    int i = th / s_width; //0 to height
+    int j = th % s_width; //0 to width
+    ret[i * s_width + j] = self[i * s_width + j] - other[j];
+}
+
+Mat Mat::operator-(const Mat& other) const{
+    if ((this->m_width != other.m_width) || (m_height != other.m_height && other.m_height != 1))
+    {
+        printf("Could not add matrices, dimensions do not match {%i, %i} vs {%i, %i}",
+            this->m_height, this->m_width, other.m_height, other.m_width);
+        throw "Invalid addition";
+    }
+
+
+    Mat ret(m_height, m_width);
+    float* ret_buffer;
+    checkCUDAError(cudaMalloc(&ret_buffer, ret.m_height * ret.m_width* sizeof(float)));
+
+    float* self_buffer;
+    checkCUDAError(cudaMalloc(&self_buffer, m_height * m_width* sizeof(float)));
+    checkCUDAError(cudaMemcpy(self_buffer, m_buffer, m_height * m_width * sizeof(float), cudaMemcpyHostToDevice));
+    float* other_buffer;
+    checkCUDAError(cudaMalloc(&other_buffer, other.m_height * other.m_width * sizeof(float)));
+    checkCUDAError(cudaMemcpy(other_buffer, other.m_buffer,
+                              other.m_height * other.m_width * sizeof(float), cudaMemcpyHostToDevice));
+
+    cudaDeviceProp prop;
+    cudaGetDeviceProperties(&prop, 0);
+    std::size_t buffer_size = ret.m_height * ret.m_width;
+    std::size_t threadsPerBlock = (buffer_size < prop.maxThreadsPerBlock)
+        ? buffer_size : prop.maxThreadsPerBlock;
+    std::size_t nbBlocks = buffer_size / threadsPerBlock + 1;
+
+    if (m_height == other.m_height)
+        sub_kernel<<<nbBlocks, threadsPerBlock>>>(self_buffer, other_buffer, ret_buffer,
+                                                  m_height, m_width);
+    else
+        sub_broadcast_kernel<<<nbBlocks, threadsPerBlock>>>(self_buffer, other_buffer, ret_buffer,
+                                                  m_height, m_width);
+
+    cudaDeviceSynchronize();
+
+    checkCUDAError(cudaMemcpy(ret.m_buffer, ret_buffer, ret.m_height * ret.m_width * sizeof(float),
+                              cudaMemcpyDeviceToHost));
+
+    cudaFree(ret_buffer);
+    cudaFree(self_buffer);
+    cudaFree(other_buffer);
+    return ret;
+}
 
 // __global__ void Mat::operator-(const Mat& other, Mat* ret) const{
 //     if ((this->m_width != other.m_width) || (m_height != other.m_height && other.m_height != 1))
