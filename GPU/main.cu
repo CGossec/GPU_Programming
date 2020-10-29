@@ -1,11 +1,10 @@
-// #include <fstream>
-// #include <string>
-// #include <cstring>
-// #include <sstream>
-// #include <iostream>
+#include <fstream>
+#include <string>
+#include <cstring>
+#include <sstream>
+#include <iostream>
 #include "matrices.cuh"
-// #include "icp.hh"
-// #include "icp-matlab.hh"
+#include "icp.cuh"
 
 Mat parse_file(std::ifstream &file) {
     std::string line;
