@@ -1,4 +1,4 @@
-#include "icp.hh"
+#include "icp.cuh"
 
 icp::icp(const Mat& src, const Mat& ref)
     : src_(src)
