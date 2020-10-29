@@ -20,15 +20,12 @@ struct Mat
 
     ~Mat();
 
-    // static Mat eye(int dim);
+    static Mat eye(int dim);
 
-    // __global__ void dot(const Mat& other, Mat* ret){
-    // void dot(const float* other, int height, Mat* ret);
+    Mat dot(const Mat& other);
     // __global__ void T(Mat* ret);
     // Mat mean() const;
 
-    // float* operator[](const int pos) const;
-    // const float* operator[](const int pos);
     // __global__ void operator+(const Mat&, Mat*) const;
     // __global__ void operator-(const Mat&, Mat*) const;
     // __global__ void operator*(const float&, Mat*) const;

@@ -1,6 +1,20 @@
 #include "matrices.cuh"
 #include <assert.h>
 
+#define checkCUDAError(val) { checkError((val), #val, __FILE__, __LINE__); }    // in-line regular function
+
+void checkError(cudaError_t code, char const * func, const char *file, const int line)
+{
+    if (code != cudaSuccess) 
+    {
+        std::cerr << "CUDA error returned from \"" << func << "\" at "
+                  << file << ":" << line << "\nError code: " << code
+                  << "(" << cudaGetErrorString(code) << ")\n";
+        cudaDeviceReset();
+        exit(code);
+    }
+}
+
 __global__ void mat_init(float* buffer, int height, int width, int value) {
     int i = blockDim.x * blockIdx.x + threadIdx.x;
     //int j = blockDim.y * blockIdx.y + threadIdx.y;
@@ -22,17 +36,16 @@ Mat::Mat(int height, int width, float value)
 {
     std::size_t buffer_size = height * width;
     this->m_buffer = (float*) malloc(height * width * sizeof(float));
-    float* d_buffer = NULL;
-    cudaMalloc((void **)&d_buffer, height * width * sizeof(float));
+    float* d_buffer;
+    checkCUDAError(cudaMalloc(&d_buffer, height * width * sizeof(float)));
 
     cudaDeviceProp prop;
     cudaGetDeviceProperties(&prop, 0);
     std::size_t threadsPerBlock = (buffer_size < prop.maxThreadsPerBlock) ? buffer_size : prop.maxThreadsPerBlock;
-
     std::size_t nbBlocks = buffer_size / threadsPerBlock + 1;
     mat_init<<<nbBlocks, threadsPerBlock>>>(d_buffer, height, width, value);
     cudaDeviceSynchronize();
-    cudaMemcpy(this->m_buffer, d_buffer, height * width * sizeof(float), cudaMemcpyDeviceToHost);
+    checkCUDAError(cudaMemcpy(this->m_buffer, d_buffer, height * width * sizeof(float), cudaMemcpyDeviceToHost));
     cudaFree(d_buffer);
 }
 
@@ -42,7 +55,7 @@ Mat::Mat(float* list_init, int height, int width)
 {
     std::size_t buffer_size = height * width;
     this->m_buffer = (float*) malloc(buffer_size * sizeof(float));
-    cudaMemcpy(this->m_buffer, list_init, buffer_size * sizeof(float), cudaMemcpyHostToHost);
+    checkCUDAError(cudaMemcpy(this->m_buffer, list_init, buffer_size * sizeof(float), cudaMemcpyHostToHost));
 }
 
 Mat::Mat(float* list_init, int width)
@@ -57,45 +70,66 @@ Mat::~Mat(){
     free(this->m_buffer);
 }
 
-// Mat Mat::eye(int dim)
-// {
-//     Mat ret(dim, dim);
-//     for (int i = 0; i < dim; ++i)
-//         ret[i][i] = 1;
-//     return ret;
-// }
+// I don't think that using a kernel (with all the overhead needed) will be faster than a little for loop
+Mat Mat::eye(int dim)
+{
+    Mat ret(dim, dim);
+    for (int i = 0; i < dim; ++i)
+        ret.m_buffer[i * ret.m_width + i] = 1;
+    return ret;
+}
 
-// __global__ void Mat::dot(const Mat& other, Mat* ret){
-//     if (this->m_width != other.m_height)
-//     {
-//         printf("Invalid dot product, shapes do not match {%i, %i} vs {%i, %i}",
-//             this->m_height, this->m_width, other.m_height, other.m_width);
-//         assert(this->m_width == other.m_height);
-//     }
-//     int i = blockDim.x*blockId.x + threadId.x;
-//     int j = blockDim.y*blockId.y + threadId.y;
-//     int k = blockDim.z*blockId.z + threadId.z;
+// Internet say, use a loop for k to avoid concurrency problem
+__global__ void dot_kernel(float* self, float* other, float* ret,
+                           int s_height, int s_width, int o_width){
+    int i = blockDim.x * blockIdx.x + threadIdx.x;
+    int j = blockDim.y * blockIdx.y + threadIdx.y;
 
-//     if (i == 0 && j == 0 && k == 0) {
-//         // Initialize the return matrix
-//         ret = &Mat(this->m_height, other.m_width);
-//     }
+    if (i >= s_height || j >= o_width) return;
 
-//     if (i >= this->m_height || j >= this->m_width || k >= this->m_height) return;
-//     ret->m_buffer[i][j] += this->m_buffer[i][k] * other.m_buffer[k][j];
-// }
+    for (int k = 0; k < s_width; ++k)
+        ret[i * o_width + j] += self[i * s_width + k] * other[k * o_width + j];
+}
 
-// void Mat::dot(const float* other, int height, Mat* ret)
-// {
-//     if ((std::size_t)this->m_width != other.size())
-//     {
-//         printf("Invalid dot product, shapes do not match {%i, %i} vs {%zd, 1}",
-//                this->m_height, this->m_width, other.size());
-//         throw "Invalid dot product";
-//     }
-//     Mat vector(other, height);
-//     dot(vector, ret); // Fix dot call
-// }
+Mat Mat::dot(const Mat& other)
+{
+    if (m_width != other.m_height)
+    {
+        printf("Invalid dot product, shapes do not match {%i, %i} vs {%i, %i}",
+               m_height, m_width, other.m_height, other.m_width);
+        throw "Invalid dot product";
+    }
+
+    Mat ret(m_height, other.m_width);
+    float* ret_buffer;
+    checkCUDAError(cudaMalloc(&ret_buffer, ret.m_height * ret.m_width* sizeof(float)));
+
+    float* self_buffer;
+    checkCUDAError(cudaMalloc(&self_buffer, m_height * m_width* sizeof(float)));
+    checkCUDAError(cudaMemcpy(self_buffer, m_buffer, m_height * m_width * sizeof(float), cudaMemcpyHostToDevice));
+    float* other_buffer;
+    checkCUDAError(cudaMalloc(&other_buffer, other.m_height * other.m_width * sizeof(float)));
+    checkCUDAError(cudaMemcpy(other_buffer, other.m_buffer,
+                              other.m_height * other.m_width * sizeof(float), cudaMemcpyHostToDevice));
+
+    cudaDeviceProp prop;
+    cudaGetDeviceProperties(&prop, 0);
+    std::size_t buffer_size = ret.m_height * ret.m_width;
+    std::size_t threadsPerBlock = (buffer_size < prop.maxThreadsPerBlock)
+        ? buffer_size : prop.maxThreadsPerBlock;
+    std::size_t nbBlocks = buffer_size / threadsPerBlock + 1;
+    dot_kernel<<<nbBlocks, threadsPerBlock>>>(self_buffer, other_buffer, ret_buffer,
+                                              m_height, m_width, other.m_width);
+    cudaDeviceSynchronize();
+
+    checkCUDAError(cudaMemcpy(ret.m_buffer, ret_buffer, ret.m_height * ret.m_width * sizeof(float),
+                              cudaMemcpyDeviceToHost));
+
+    cudaFree(ret_buffer);
+    cudaFree(self_buffer);
+    cudaFree(other_buffer);
+    return ret;
+}
 
 // __global__ void Mat::T(Mat* ret) {
 //     if (ret == NULL) {
