@@ -83,11 +83,12 @@ Mat Mat::eye(int dim)
 // Internet say, use a loop for k to avoid concurrency problem
 __global__ void dot_kernel(float* self, float* other, float* ret,
                            int s_height, int s_width, int o_width){
-    int i = blockDim.x * blockIdx.x + threadIdx.x;
-    int j = blockDim.y * blockIdx.y + threadIdx.y;
+    int th = blockDim.x * blockIdx.x + threadIdx.x;
 
-    if (i >= s_height || j >= o_width) return;
+    if (th >= s_height * o_width) return;
 
+    int i = th / o_width; //0 to height
+    int j = th % o_width; //0 to width
     for (int k = 0; k < s_width; ++k)
         ret[i * o_width + j] += self[i * s_width + k] * other[k * o_width + j];
 }
@@ -133,10 +134,13 @@ Mat Mat::dot(const Mat& other)
 }
 
 __global__ void T_kernel(float* self, float* ret, int s_height, int s_width) {
-    int i = blockDim.x * blockIdx.x + threadIdx.x;
+    int th = blockDim.x * blockIdx.x + threadIdx.x;
 
-    if (i >= s_height * s_width) return;
-    ret[i / s_width + (i % s_width) * s_height] = self[i];
+    if (th >= s_height * s_width) return;
+
+    int i = th / s_width; //0 to height
+    int j = th % s_width; //0 to width
+    ret[j * s_height + i] = self[i * s_width + j];
 }
 
 Mat Mat::T() {
