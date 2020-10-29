@@ -74,6 +74,14 @@ int main(int argc, char const *argv[])
         O.m_buffer[i] = i * 3;
     (K + O).print();
 
+    Mat P(2,2);
+    P.m_buffer[0] = 5;
+    P.m_buffer[1] = 2;
+    P.m_buffer[2] = -7;
+    P.m_buffer[3] = -3;
+    P.print();
+    P.inverse().print();
+
     // if (argc != 3) {
     //     std::cerr << "Usage: " << argv[0] << " path/to/test/file path/to/model/file";
     //     return 1;

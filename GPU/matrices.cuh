@@ -4,11 +4,6 @@
 #include <cuda.h>
 #include <Eigen/Eigenvalues>
 
-struct EigenVal{
-    float val;
-    float* vect;
-};
-
 struct Mat
 {
     Mat() = delete;
