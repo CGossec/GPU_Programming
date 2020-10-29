@@ -36,6 +36,8 @@ int main(int argc, char const *argv[])
 {
     Mat A = Mat(10, 8, 3);
     A.print();
+    Mat G = Mat(10, 8);
+    G.print();
     float *v = (float*)calloc(4, sizeof(float));
     v[3] = 4;
     Mat B = Mat(v, 2, 2);
@@ -44,6 +46,8 @@ int main(int argc, char const *argv[])
     C.m_buffer[2] = 2;
     B.print();
     C.print();
+    v[0] = 5;
+    free(v);
     // if (argc != 3) {
     //     std::cerr << "Usage: " << argv[0] << " path/to/test/file path/to/model/file";
     //     return 1;

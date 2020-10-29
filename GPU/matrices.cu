@@ -9,16 +9,13 @@ __global__ void mat_init(float* buffer, int height, int width, int value) {
     buffer[i] = value;
 }
 
-__global__ void mat_cpy(float* buffer, int height, int width, const float* src){
-    int i = blockDim.x * blockIdx.x + threadIdx.x;
-    //int j = blockDim.y * blockIdx.y + threadIdx.y;
-    if (i >= width * height) return;
+Mat::Mat(int height, int width)
+    : m_height(height)
+    , m_width(width)
+    , m_buffer((float*) calloc(height * width, sizeof(float)))
+{}
 
-    buffer[i] = src[i];
-}
-
-Mat::Mat(int height, int width) { Mat(height, width, 0); }
-
+// Need to use a custom kernel instead of CudaMemSet because we operate of float pointers
 Mat::Mat(int height, int width, float value)
     : m_height{height}
     , m_width{width}
@@ -35,28 +32,25 @@ Mat::Mat(int height, int width, float value)
     std::size_t nbBlocks = buffer_size / threadsPerBlock + 1;
     mat_init<<<nbBlocks, threadsPerBlock>>>(d_buffer, height, width, value);
     cudaDeviceSynchronize();
-    cudaMemcpy(this->m_buffer, d_buffer, height*width*sizeof(float), cudaMemcpyDeviceToHost);
+    cudaMemcpy(this->m_buffer, d_buffer, height * width * sizeof(float), cudaMemcpyDeviceToHost);
     cudaFree(d_buffer);
 }
 
 Mat::Mat(float* list_init, int height, int width)
-    //list_init should be already allocated
     : m_height(height)
     , m_width(width)
-    , m_buffer(list_init)
-    {}
+{
+    std::size_t buffer_size = height * width;
+    this->m_buffer = (float*) malloc(buffer_size * sizeof(float));
+    cudaMemcpy(this->m_buffer, list_init, buffer_size * sizeof(float), cudaMemcpyHostToHost);
+}
 
 Mat::Mat(float* list_init, int width)
-    : m_height(1)
-    , m_width(width)
-    , m_buffer(list_init)
+    : Mat(list_init, 1, width)
     {}
 
 Mat::Mat(const Mat& m)
-    //TODO deep copy
-    : m_height(m.m_height)
-    , m_width(m.m_width)
-    , m_buffer(m.m_buffer)
+    : Mat(m.m_buffer, m.m_height, m.m_width)
     {}
 
 Mat::~Mat(){
