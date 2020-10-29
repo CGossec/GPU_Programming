@@ -7,33 +7,61 @@
 // #include "icp.hh"
 // #include "icp-matlab.hh"
 
-// Mat parse_file(std::ifstream &file) {
-//     std::string line;
-//     int counter = 0;
-//     float** results;
-//     // std::vector<std::vector<float> > results;
-//     while (std::getline(file, line))
-//     {
-//         if (!counter) {
-//             counter++;
-//             continue;
-//         }
-//         float* coord;
-//         std::vector<float> coord;
-//         std::stringstream ss(line);
-//         while (ss.good()) {
-//             std::string substr;
-//             std::getline(ss,substr, ',');
-//             float point = std::stof(substr);
-//             coord.push_back(point);
-//         }
-//         results.push_back(coord);
-//     }
-//     return results;
-// }
+Mat parse_file(std::ifstream &file) {
+    std::string line;
+    float* results;
+    int counter = 0;
+    int index = 0;
+    int res_size = 0;
+    int height = 0;
+    while (std::getline(file, line))
+    {
+        if (!counter) {
+            counter++;
+            continue;
+        }
+        std::stringstream ss(line);
+        while (ss.good()) {
+            std::string substr;
+            std::getline(ss,substr, ',');
+            float point = std::stof(substr);
+            results = realloc(results, ++res_size * sizeof(float));
+            results[index++] = point;
+        }
+        i++;
+    }
+    Mat res = Mat(results, height, index / height);
+    return res;
+}
 
 int main(int argc, char const *argv[])
 {
+    if (argc != 3) {
+        std::cerr << "Usage: " << argv[0] << " path/to/test/file path/to/model/file";
+        return 1;
+    }
+    std::ifstream file1(argv[1]);
+    std::ifstream file2(argv[2]);
+    if (!file1 || !file2) {
+        std::cerr << "couldn't open file\n";
+        return 1;
+    }
+    Mat test = parse_file(file1);
+    Mat ref = parse_file(file2);
+
+    try {
+        ref.print();
+        test.print();
+        icp res = icp(test, ref);
+        res.fit();
+        // res.get_src_transformed().print();
+    } catch (const char* msg) {
+        std::cerr << msg << std::endl;
+    }
+
+    std::cout << "End\n";
+    return 0;
+
     Mat A = Mat(10, 8, 3);
     A.print();
 
