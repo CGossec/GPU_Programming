@@ -32,4 +32,5 @@ struct Mat
     int m_width;
 
     float* m_buffer;
+    static std::size_t maxThreadsPerBlock;
 };

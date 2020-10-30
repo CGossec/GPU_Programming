@@ -16,6 +16,15 @@ void checkError(cudaError_t code, char const * func, const char *file, const int
     }
 }
 
+std::size_t get_maxThreadsPerBlock()
+{
+    cudaDeviceProp prop;
+    cudaGetDeviceProperties(&prop, 0);
+    return prop.maxThreadsPerBlock;
+}
+
+std::size_t Mat::maxThreadsPerBlock = get_maxThreadsPerBlock();
+
 __global__ void mat_init(float* buffer, int height, int width, int value) {
     int i = blockDim.x * blockIdx.x + threadIdx.x;
     //int j = blockDim.y * blockIdx.y + threadIdx.y;
@@ -40,9 +49,7 @@ Mat::Mat(int height, int width, float value)
     float* d_buffer;
     checkCUDAError(cudaMalloc(&d_buffer, height * width * sizeof(float)));
 
-    cudaDeviceProp prop;
-    cudaGetDeviceProperties(&prop, 0);
-    std::size_t threadsPerBlock = (buffer_size < prop.maxThreadsPerBlock) ? buffer_size : prop.maxThreadsPerBlock;
+    std::size_t threadsPerBlock = (buffer_size < maxThreadsPerBlock) ? buffer_size : maxThreadsPerBlock;
     std::size_t nbBlocks = buffer_size / threadsPerBlock + 1;
     mat_init<<<nbBlocks, threadsPerBlock>>>(d_buffer, height, width, value);
     cudaDeviceSynchronize();
@@ -126,11 +133,9 @@ Mat Mat::dot(const Mat& other)
     checkCUDAError(cudaMemcpy(other_buffer, other.m_buffer,
                               other.m_height * other.m_width * sizeof(float), cudaMemcpyHostToDevice));
 
-    cudaDeviceProp prop;
-    cudaGetDeviceProperties(&prop, 0);
     std::size_t buffer_size = ret.m_height * ret.m_width;
-    std::size_t threadsPerBlock = (buffer_size < prop.maxThreadsPerBlock)
-        ? buffer_size : prop.maxThreadsPerBlock;
+    std::size_t threadsPerBlock = (buffer_size < maxThreadsPerBlock)
+        ? buffer_size : maxThreadsPerBlock;
     std::size_t nbBlocks = buffer_size / threadsPerBlock + 1;
     dot_kernel<<<nbBlocks, threadsPerBlock>>>(self_buffer, other_buffer, ret_buffer,
                                               m_height, m_width, other.m_width);
@@ -164,11 +169,9 @@ Mat Mat::T() {
     checkCUDAError(cudaMalloc(&self_buffer, m_height * m_width* sizeof(float)));
     checkCUDAError(cudaMemcpy(self_buffer, m_buffer, m_height * m_width * sizeof(float), cudaMemcpyHostToDevice));
 
-    cudaDeviceProp prop;
-    cudaGetDeviceProperties(&prop, 0);
     std::size_t buffer_size = ret.m_height * ret.m_width;
-    std::size_t threadsPerBlock = (buffer_size < prop.maxThreadsPerBlock)
-        ? buffer_size : prop.maxThreadsPerBlock;
+    std::size_t threadsPerBlock = (buffer_size < maxThreadsPerBlock)
+        ? buffer_size : maxThreadsPerBlock;
     std::size_t nbBlocks = buffer_size / threadsPerBlock + 1;
     T_kernel<<<nbBlocks, threadsPerBlock>>>(self_buffer, ret_buffer, m_height, m_width);
     cudaDeviceSynchronize();
@@ -218,11 +221,9 @@ Mat Mat::operator+(const Mat& other) const{
     checkCUDAError(cudaMemcpy(other_buffer, other.m_buffer,
                               other.m_height * other.m_width * sizeof(float), cudaMemcpyHostToDevice));
 
-    cudaDeviceProp prop;
-    cudaGetDeviceProperties(&prop, 0);
     std::size_t buffer_size = ret.m_height * ret.m_width;
-    std::size_t threadsPerBlock = (buffer_size < prop.maxThreadsPerBlock)
-        ? buffer_size : prop.maxThreadsPerBlock;
+    std::size_t threadsPerBlock = (buffer_size < maxThreadsPerBlock)
+        ? buffer_size : maxThreadsPerBlock;
     std::size_t nbBlocks = buffer_size / threadsPerBlock + 1;
 
     if (m_height == other.m_height)
@@ -280,11 +281,9 @@ Mat Mat::operator-(const Mat& other) const{
     checkCUDAError(cudaMemcpy(other_buffer, other.m_buffer,
                               other.m_height * other.m_width * sizeof(float), cudaMemcpyHostToDevice));
 
-    cudaDeviceProp prop;
-    cudaGetDeviceProperties(&prop, 0);
     std::size_t buffer_size = ret.m_height * ret.m_width;
-    std::size_t threadsPerBlock = (buffer_size < prop.maxThreadsPerBlock)
-        ? buffer_size : prop.maxThreadsPerBlock;
+    std::size_t threadsPerBlock = (buffer_size < maxThreadsPerBlock)
+        ? buffer_size : maxThreadsPerBlock;
     std::size_t nbBlocks = buffer_size / threadsPerBlock + 1;
 
     if (m_height == other.m_height)
@@ -357,11 +356,9 @@ Mat Mat::inverse() const
     checkCUDAError(cudaMalloc(&self_buffer, m_height * m_width * sizeof(float)));
     checkCUDAError(cudaMemcpy(self_buffer, m_buffer, m_height * m_width * sizeof(float), cudaMemcpyHostToDevice));
 
-    cudaDeviceProp prop;
-    cudaGetDeviceProperties(&prop, 0);
     std::size_t buffer_size = ret.m_height * ret.m_width;
-    std::size_t threadsPerBlock = (buffer_size < prop.maxThreadsPerBlock)
-        ? buffer_size : prop.maxThreadsPerBlock;
+    std::size_t threadsPerBlock = (buffer_size < maxThreadsPerBlock)
+        ? buffer_size : maxThreadsPerBlock;
     std::size_t nbBlocks = buffer_size / threadsPerBlock + 1;
 
     for (int i = 0; i < m_height; ++i)
