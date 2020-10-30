@@ -137,7 +137,7 @@ icp& icp::fit(int iterations, float threshold, bool force_iteration){
         auto prep_sys = prepare_system(x, src_, ref_);
         Mat H = *prep_sys->h;
         Mat G = *prep_sys->g;
-        float chi = prep_sys->chi;
+        chi = prep_sys->chi;
         auto dx = H.inverse().dot(G).T();
         x = x - dx;
         translation_scalars_ = Mat(1, 3);
@@ -153,9 +153,9 @@ icp& icp::fit(int iterations, float threshold, bool force_iteration){
             break;
     }
     if (chi >= threshold)
-        std::cerr << "ICP did not converge in " << iterations << " iterations, and have a chi value of " << chi << "\n";
+        std::cerr << "ICP did not converge in " << iterations << " iterations, and has a chi value of " << chi << "\n";
     else
-        std::cerr << "ICP converge in " << i << " iterations, and have a chi value of " << chi << "\n";
+        std::cerr << "ICP converge in " << i << " iterations, and has a chi value of " << chi << "\n";
 
     return *this;
 }
