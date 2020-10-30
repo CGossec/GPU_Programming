@@ -50,7 +50,7 @@ for ii, test in enumerate(data):
             if elm.startswith("real"):
                 actual_time = elm.split()[-1]
                 minutes_to_seconds = int(actual_time.split("m")[0]) * 60
-                parse_seconds = re.split(",| \.", actual_time.split("m")[1])
+                parse_seconds = re.split("\.|,", actual_time.split("m")[1])
                 seconds = minutes_to_seconds + int(parse_seconds[0]) + float(parse_seconds[1][:-1]) / 1000
                 wall_times.append(seconds)
         mean = round(sum(wall_times) / len(wall_times), 5)
