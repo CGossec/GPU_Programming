@@ -38,7 +38,7 @@ public:
     }
 
 private:
-    Mat* get_r(const float theta1, const float theta2, const float theta3) const;
+    void set_rotation_matrix(const float theta1, const float theta2, const float theta3) const;
     Mat* get_dr(const float theta1, const float theta2, const float theta3) const;
     Mat get_jacobian(const Mat&, const Mat&) const;
     Mat err(const Mat& x, const Mat& p_point, const Mat& q_point) const;
