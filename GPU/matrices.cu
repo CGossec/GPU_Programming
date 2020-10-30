@@ -70,6 +70,15 @@ Mat::Mat(const Mat& m)
 Mat Mat::copy() const
 { return Mat(m_buffer, m_height, m_width);}
 
+
+void Mat::operator=(const Mat& other)
+{
+    m_height = other.m_height;
+    m_width = other.m_width;
+    checkCUDAError(cudaMemcpy(m_buffer, other.m_buffer,
+                              m_height * m_width * sizeof(float), cudaMemcpyHostToHost));
+}
+
 Mat::~Mat(){
     free(this->m_buffer);
 }

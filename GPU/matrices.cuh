@@ -20,6 +20,7 @@ struct Mat
     Mat dot(const Mat& other);
     Mat T();
 
+    void operator=(const Mat& other);
     Mat operator+(const Mat& other) const;
     Mat operator-(const Mat& other) const;
 
