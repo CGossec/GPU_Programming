@@ -8,7 +8,7 @@
 
 Mat parse_file(std::ifstream &file) {
     std::string line;
-    float* results;
+    float* results = NULL;
     int counter = 0;
     int index = 0;
     int res_size = 0;
@@ -20,16 +20,25 @@ Mat parse_file(std::ifstream &file) {
             continue;
         }
         std::stringstream ss(line);
+        res_size += 1;
+        results = (float*)realloc(results, 3 * res_size * sizeof(float));
+        int cpt = 0;
         while (ss.good()) {
+            if (cpt >= 3)
+                break;
             std::string substr;
             std::getline(ss,substr, ',');
             float point = std::stof(substr);
-            results = (float*)realloc(results, ++res_size * sizeof(float));
             results[index++] = point;
+            cpt++;
+        }
+        if (cpt != 3) {
+            std::cerr << "ICP only accept 3D points\n";
+            throw "ICP only accept 3D points\n";
         }
         height++;
     }
-    Mat res = Mat(results, height, index / height);
+    Mat res = Mat(results, height, 3);
     return res;
 }
 
