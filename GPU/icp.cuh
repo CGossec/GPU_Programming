@@ -23,7 +23,7 @@ class icp
 public:
     icp(const Mat& src, const Mat& ref);
     ~icp();
-    icp& fit(int iterations = 30, float treshold = 0.0001);
+    icp& fit(int iterations = 30, float treshold = 0.0001, bool force_iteration = false);
 
     Mat get_src_transformed() {
         return src_transformed_;
