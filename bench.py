@@ -31,8 +31,8 @@ data = ["./datatest/small_30"]
 #==================================================
 
 
-modes = ["CPU", "GPU"]
-performances = {"CPU":[], "GPU":[], "nbPoints":[], "nbIterations":[]}
+modes = ["CPU", "GPU", "GPU-opti"]
+performances = {"CPU":[], "GPU":[], "GPU-opti":[], "nbPoints":[], "nbIterations":[]}
 for ii, test in enumerate(data):
     source = test + "_src"
     target = test + "_tgt"
@@ -68,6 +68,7 @@ ax.set_xlabel("Number of points")
 ax.set_ylabel("Speed in seconds")
 ax.plot(df.nbPoints, df.CPU, "o", label="CPU implementation")
 ax.plot(df.nbPoints, df.GPU, "o", label="GPU implementation")
+ax.plot(df.nbPoints, df["GPU-opti"], "o", label="GPU-opti implementation")
 ax.legend()
 fig.savefig("benchmarks_plots.png")
 plt.close()

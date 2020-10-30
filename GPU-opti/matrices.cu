@@ -3,6 +3,7 @@
 #include <assert.h>
 
 #define checkCUDAError(val) { checkError((val), #val, __FILE__, __LINE__); }    // in-line regular function
+#define GPUThreshold 100
 
 void checkError(cudaError_t code, char const * func, const char *file, const int line)
 {
@@ -15,6 +16,15 @@ void checkError(cudaError_t code, char const * func, const char *file, const int
         exit(code);
     }
 }
+
+std::size_t get_maxThreadsPerBlock()
+{
+    cudaDeviceProp prop;
+    cudaGetDeviceProperties(&prop, 0);
+    return prop.maxThreadsPerBlock;
+}
+
+std::size_t Mat::maxThreadsPerBlock = get_maxThreadsPerBlock();
 
 __global__ void mat_init(float* buffer, int height, int width, int value) {
     int i = blockDim.x * blockIdx.x + threadIdx.x;
@@ -40,9 +50,7 @@ Mat::Mat(int height, int width, float value)
     float* d_buffer;
     checkCUDAError(cudaMalloc(&d_buffer, height * width * sizeof(float)));
 
-    cudaDeviceProp prop;
-    cudaGetDeviceProperties(&prop, 0);
-    std::size_t threadsPerBlock = (buffer_size < prop.maxThreadsPerBlock) ? buffer_size : prop.maxThreadsPerBlock;
+    std::size_t threadsPerBlock = (buffer_size < maxThreadsPerBlock) ? buffer_size : maxThreadsPerBlock;
     std::size_t nbBlocks = buffer_size / threadsPerBlock + 1;
     mat_init<<<nbBlocks, threadsPerBlock>>>(d_buffer, height, width, value);
     cudaDeviceSynchronize();
@@ -105,15 +113,8 @@ __global__ void dot_kernel(float* self, float* other, float* ret,
         ret[i * o_width + j] += self[i * s_width + k] * other[k * o_width + j];
 }
 
-Mat Mat::dot(const Mat& other)
+Mat Mat::gpu_dot(const Mat& other)
 {
-    if (m_width != other.m_height)
-    {
-        printf("Invalid dot product, shapes do not match {%i, %i} vs {%i, %i}",
-               m_height, m_width, other.m_height, other.m_width);
-        throw "Invalid dot product";
-    }
-
     Mat ret(m_height, other.m_width);
     float* ret_buffer;
     checkCUDAError(cudaMalloc(&ret_buffer, ret.m_height * ret.m_width* sizeof(float)));
@@ -126,11 +127,9 @@ Mat Mat::dot(const Mat& other)
     checkCUDAError(cudaMemcpy(other_buffer, other.m_buffer,
                               other.m_height * other.m_width * sizeof(float), cudaMemcpyHostToDevice));
 
-    cudaDeviceProp prop;
-    cudaGetDeviceProperties(&prop, 0);
     std::size_t buffer_size = ret.m_height * ret.m_width;
-    std::size_t threadsPerBlock = (buffer_size < prop.maxThreadsPerBlock)
-        ? buffer_size : prop.maxThreadsPerBlock;
+    std::size_t threadsPerBlock = (buffer_size < maxThreadsPerBlock)
+        ? buffer_size : maxThreadsPerBlock;
     std::size_t nbBlocks = buffer_size / threadsPerBlock + 1;
     dot_kernel<<<nbBlocks, threadsPerBlock>>>(self_buffer, other_buffer, ret_buffer,
                                               m_height, m_width, other.m_width);
@@ -145,6 +144,37 @@ Mat Mat::dot(const Mat& other)
     return ret;
 }
 
+Mat Mat::cpu_dot(const Mat& other)
+{
+    Mat ret = Mat(m_height, other.m_width);
+
+    for (int i = 0; i < m_height; ++i) {
+        for (int j = 0; j < other.m_width; ++j){
+            for (int k = 0; k < other.m_height; ++k) {
+                ret.m_buffer[i * ret.m_width + j] += m_buffer[i * m_width + k]
+                    * other.m_buffer[k * other.m_width + j];
+            }
+        }
+    }
+    return ret;
+}
+
+Mat Mat::dot(const Mat& other)
+{
+    if (this->m_width != other.m_height)
+    {
+        printf("Invalid dot product, shapes do not match {%i, %i} vs {%i, %i}",
+            this->m_height, this->m_width, other.m_height, other.m_width);
+        throw "Invalid dot product";
+    }
+
+    std::size_t size = m_height * other.m_width;
+    if (size < GPUThreshold)
+        return cpu_dot(other);
+    else
+        return gpu_dot(other);
+}
+
 __global__ void T_kernel(float* self, float* ret, int s_height, int s_width) {
     int th = blockDim.x * blockIdx.x + threadIdx.x;
 
@@ -155,7 +185,7 @@ __global__ void T_kernel(float* self, float* ret, int s_height, int s_width) {
     ret[j * s_height + i] = self[i * s_width + j];
 }
 
-Mat Mat::T() {
+Mat Mat::gpu_T() {
     Mat ret(m_width, m_height);
     float* ret_buffer;
     checkCUDAError(cudaMalloc(&ret_buffer, ret.m_height * ret.m_width * sizeof(float)));
@@ -164,11 +194,9 @@ Mat Mat::T() {
     checkCUDAError(cudaMalloc(&self_buffer, m_height * m_width* sizeof(float)));
     checkCUDAError(cudaMemcpy(self_buffer, m_buffer, m_height * m_width * sizeof(float), cudaMemcpyHostToDevice));
 
-    cudaDeviceProp prop;
-    cudaGetDeviceProperties(&prop, 0);
     std::size_t buffer_size = ret.m_height * ret.m_width;
-    std::size_t threadsPerBlock = (buffer_size < prop.maxThreadsPerBlock)
-        ? buffer_size : prop.maxThreadsPerBlock;
+    std::size_t threadsPerBlock = (buffer_size < maxThreadsPerBlock)
+        ? buffer_size : maxThreadsPerBlock;
     std::size_t nbBlocks = buffer_size / threadsPerBlock + 1;
     T_kernel<<<nbBlocks, threadsPerBlock>>>(self_buffer, ret_buffer, m_height, m_width);
     cudaDeviceSynchronize();
@@ -179,6 +207,22 @@ Mat Mat::T() {
     cudaFree(ret_buffer);
     cudaFree(self_buffer);
     return ret;
+}
+
+Mat Mat::cpu_T() {
+    auto ret = Mat(m_width, m_height);
+    for (int i = 0; i < m_height; i++)
+        for (int j = 0; j < m_width; j++)
+            ret.m_buffer[j * m_height + i] = m_buffer[i * m_width + j];
+    return ret;
+}
+
+Mat Mat::T() {
+    std::size_t size = m_height * m_width;
+    if (size < GPUThreshold)
+        return cpu_T();
+    else
+        return gpu_T();
 }
 
 __global__ void add_kernel(float* self, float* other, float* ret, int s_height, int s_width) {
@@ -197,15 +241,7 @@ __global__ void add_broadcast_kernel(float* self, float* other, float* ret, int 
     ret[i * s_width + j] = self[i * s_width + j] + other[j];
 }
 
-Mat Mat::operator+(const Mat& other) const{
-    if ((this->m_width != other.m_width) || (m_height != other.m_height && other.m_height != 1))
-    {
-        printf("Could not add matrices, dimensions do not match {%i, %i} vs {%i, %i}",
-            this->m_height, this->m_width, other.m_height, other.m_width);
-        throw "Invalid addition";
-    }
-
-
+Mat Mat::gpu_plus(const Mat& other) const{
     Mat ret(m_height, m_width);
     float* ret_buffer;
     checkCUDAError(cudaMalloc(&ret_buffer, ret.m_height * ret.m_width* sizeof(float)));
@@ -218,11 +254,9 @@ Mat Mat::operator+(const Mat& other) const{
     checkCUDAError(cudaMemcpy(other_buffer, other.m_buffer,
                               other.m_height * other.m_width * sizeof(float), cudaMemcpyHostToDevice));
 
-    cudaDeviceProp prop;
-    cudaGetDeviceProperties(&prop, 0);
     std::size_t buffer_size = ret.m_height * ret.m_width;
-    std::size_t threadsPerBlock = (buffer_size < prop.maxThreadsPerBlock)
-        ? buffer_size : prop.maxThreadsPerBlock;
+    std::size_t threadsPerBlock = (buffer_size < maxThreadsPerBlock)
+        ? buffer_size : maxThreadsPerBlock;
     std::size_t nbBlocks = buffer_size / threadsPerBlock + 1;
 
     if (m_height == other.m_height)
@@ -243,6 +277,45 @@ Mat Mat::operator+(const Mat& other) const{
     return ret;
 }
 
+Mat Mat::cpu_plus(const Mat& other) const{
+    Mat ret = Mat(m_height, m_width);
+    if (m_height == other.m_height)
+    {
+        for (int i = 0; i < this->m_height; i++) {
+            for (int j = 0; j < this->m_width; j++) {
+                ret.m_buffer[i * m_width + j] = m_buffer[i * m_width + j]
+                    + other.m_buffer[i * other.m_width + j];
+            }
+        }
+    }
+    else
+    {
+        for (int i = 0; i < this->m_height; i++) {
+            for (int j = 0; j < this->m_width; j++) {
+                ret.m_buffer[i * m_width + j] = m_buffer[i * m_width + j]
+                    + other.m_buffer[j];
+            }
+        }
+    }
+
+    return ret;
+}
+
+Mat Mat::operator+(const Mat& other) const{
+    if ((this->m_width != other.m_width) || (m_height != other.m_height && other.m_height != 1))
+    {
+        printf("Could not add matrices, dimensions do not match {%i, %i} vs {%i, %i}",
+            this->m_height, this->m_width, other.m_height, other.m_width);
+        throw "Invalid addition";
+    }
+
+    std::size_t size = m_height * m_width;
+    if (size < GPUThreshold)
+        return cpu_plus(other);
+    else
+        return gpu_plus(other);
+}
+
 __global__ void sub_kernel(float* self, float* other, float* ret, int s_height, int s_width) {
     int th = blockDim.x * blockIdx.x + threadIdx.x;
 
@@ -259,15 +332,7 @@ __global__ void sub_broadcast_kernel(float* self, float* other, float* ret, int 
     ret[i * s_width + j] = self[i * s_width + j] - other[j];
 }
 
-Mat Mat::operator-(const Mat& other) const{
-    if ((this->m_width != other.m_width) || (m_height != other.m_height && other.m_height != 1))
-    {
-        printf("Could not add matrices, dimensions do not match {%i, %i} vs {%i, %i}",
-            this->m_height, this->m_width, other.m_height, other.m_width);
-        throw "Invalid addition";
-    }
-
-
+Mat Mat::gpu_minus(const Mat& other) const{
     Mat ret(m_height, m_width);
     float* ret_buffer;
     checkCUDAError(cudaMalloc(&ret_buffer, ret.m_height * ret.m_width* sizeof(float)));
@@ -280,11 +345,9 @@ Mat Mat::operator-(const Mat& other) const{
     checkCUDAError(cudaMemcpy(other_buffer, other.m_buffer,
                               other.m_height * other.m_width * sizeof(float), cudaMemcpyHostToDevice));
 
-    cudaDeviceProp prop;
-    cudaGetDeviceProperties(&prop, 0);
     std::size_t buffer_size = ret.m_height * ret.m_width;
-    std::size_t threadsPerBlock = (buffer_size < prop.maxThreadsPerBlock)
-        ? buffer_size : prop.maxThreadsPerBlock;
+    std::size_t threadsPerBlock = (buffer_size < maxThreadsPerBlock)
+        ? buffer_size : maxThreadsPerBlock;
     std::size_t nbBlocks = buffer_size / threadsPerBlock + 1;
 
     if (m_height == other.m_height)
@@ -303,6 +366,45 @@ Mat Mat::operator-(const Mat& other) const{
     cudaFree(self_buffer);
     cudaFree(other_buffer);
     return ret;
+}
+
+Mat Mat::cpu_minus(const Mat& other) const{
+    Mat ret = Mat(this->m_height, this->m_width);
+    if (m_height == other.m_height)
+    {
+        for (int i = 0; i < this->m_height; i++) {
+            for (int j = 0; j < this->m_width; j++) {
+                ret.m_buffer[i * m_width + j] = m_buffer[i * m_width + j]
+                    - other.m_buffer[i * other.m_width + j];
+            }
+        }
+    }
+    else
+    {
+        for (int i = 0; i < this->m_height; i++) {
+            for (int j = 0; j < this->m_width; j++) {
+                ret.m_buffer[i * m_width + j] = m_buffer[i * m_width + j]
+                    - other.m_buffer[j];
+            }
+        }
+    }
+
+    return ret;
+}
+
+Mat Mat::operator-(const Mat& other) const{
+    if ((this->m_width != other.m_width) || (m_height != other.m_height && other.m_height != 1))
+    {
+        printf("Could not substract matrices, dimensions do not match {%i, %i} vs {%i, %i}",
+            this->m_height, this->m_width, other.m_height, other.m_width);
+        throw "Invalid addition";
+    }
+
+    std::size_t size = m_height * m_width;
+    if (size < GPUThreshold)
+        return cpu_minus(other);
+    else
+        return gpu_minus(other);
 }
 
 __global__ void normalize_kernel(float *A, float *I, int n, int x, bool diag){
@@ -357,11 +459,9 @@ Mat Mat::inverse() const
     checkCUDAError(cudaMalloc(&self_buffer, m_height * m_width * sizeof(float)));
     checkCUDAError(cudaMemcpy(self_buffer, m_buffer, m_height * m_width * sizeof(float), cudaMemcpyHostToDevice));
 
-    cudaDeviceProp prop;
-    cudaGetDeviceProperties(&prop, 0);
     std::size_t buffer_size = ret.m_height * ret.m_width;
-    std::size_t threadsPerBlock = (buffer_size < prop.maxThreadsPerBlock)
-        ? buffer_size : prop.maxThreadsPerBlock;
+    std::size_t threadsPerBlock = (buffer_size < maxThreadsPerBlock)
+        ? buffer_size : maxThreadsPerBlock;
     std::size_t nbBlocks = buffer_size / threadsPerBlock + 1;
 
     for (int i = 0; i < m_height; ++i)
