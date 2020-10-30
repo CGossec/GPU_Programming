@@ -128,7 +128,7 @@ prep_sys_t* icp::prepare_system(Mat& x, Mat& P, Mat& Q) const {
 }
 
 // Compute the 3 rotation matrix and the 3 translation scalars to transform src_ in ref_
-icp& icp::fit(int iterations, float threshold){
+icp& icp::fit(int iterations, float threshold, bool force_iteration){
     auto x = Mat(1,6); // 3 rotation factors + 3 translation
     float chi = 0.;
     int i = 0;
@@ -149,7 +149,7 @@ icp& icp::fit(int iterations, float threshold){
         delete prep_sys->h;
         delete prep_sys->g;
         free(prep_sys);
-        if (chi < threshold)
+        if (chi < threshold && not force_iteration)
             break;
     }
     if (chi >= threshold)

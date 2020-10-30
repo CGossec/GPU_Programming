@@ -22,7 +22,7 @@ public:
         , translation_scalars_(Mat(1, 3))
         , rotation_matrix_(std::array<Mat, 3>{Mat(3, 3), Mat(3, 3), Mat(3, 3)})
         {}
-    icp& fit(int iterations = 30, float treshold = 0.0001);
+    icp& fit(int iterations = 30, float treshold = 0.0001, bool force_iteration = false);
 
     Mat get_src_transformed() {
         return src_transformed_;
