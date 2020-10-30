@@ -241,15 +241,7 @@ __global__ void add_broadcast_kernel(float* self, float* other, float* ret, int 
     ret[i * s_width + j] = self[i * s_width + j] + other[j];
 }
 
-Mat Mat::operator+(const Mat& other) const{
-    if ((this->m_width != other.m_width) || (m_height != other.m_height && other.m_height != 1))
-    {
-        printf("Could not add matrices, dimensions do not match {%i, %i} vs {%i, %i}",
-            this->m_height, this->m_width, other.m_height, other.m_width);
-        throw "Invalid addition";
-    }
-
-
+Mat Mat::gpu_plus(const Mat& other) const{
     Mat ret(m_height, m_width);
     float* ret_buffer;
     checkCUDAError(cudaMalloc(&ret_buffer, ret.m_height * ret.m_width* sizeof(float)));
@@ -285,6 +277,45 @@ Mat Mat::operator+(const Mat& other) const{
     return ret;
 }
 
+Mat Mat::cpu_plus(const Mat& other) const{
+    Mat ret = Mat(m_height, m_width);
+    if (m_height == other.m_height)
+    {
+        for (int i = 0; i < this->m_height; i++) {
+            for (int j = 0; j < this->m_width; j++) {
+                ret.m_buffer[i * m_width + j] = m_buffer[i * m_width + j]
+                    + other.m_buffer[i * other.m_width + j];
+            }
+        }
+    }
+    else
+    {
+        for (int i = 0; i < this->m_height; i++) {
+            for (int j = 0; j < this->m_width; j++) {
+                ret.m_buffer[i * m_width + j] = m_buffer[i * m_width + j]
+                    + other.m_buffer[j];
+            }
+        }
+    }
+
+    return ret;
+}
+
+Mat Mat::operator+(const Mat& other) const{
+    if ((this->m_width != other.m_width) || (m_height != other.m_height && other.m_height != 1))
+    {
+        printf("Could not add matrices, dimensions do not match {%i, %i} vs {%i, %i}",
+            this->m_height, this->m_width, other.m_height, other.m_width);
+        throw "Invalid addition";
+    }
+
+    std::size_t size = m_height * m_width;
+    if (size < GPUThreshold)
+        return cpu_plus(other);
+    else
+        return gpu_plus(other);
+}
+
 __global__ void sub_kernel(float* self, float* other, float* ret, int s_height, int s_width) {
     int th = blockDim.x * blockIdx.x + threadIdx.x;
 
@@ -301,15 +332,7 @@ __global__ void sub_broadcast_kernel(float* self, float* other, float* ret, int 
     ret[i * s_width + j] = self[i * s_width + j] - other[j];
 }
 
-Mat Mat::operator-(const Mat& other) const{
-    if ((this->m_width != other.m_width) || (m_height != other.m_height && other.m_height != 1))
-    {
-        printf("Could not add matrices, dimensions do not match {%i, %i} vs {%i, %i}",
-            this->m_height, this->m_width, other.m_height, other.m_width);
-        throw "Invalid addition";
-    }
-
-
+Mat Mat::gpu_minus(const Mat& other) const{
     Mat ret(m_height, m_width);
     float* ret_buffer;
     checkCUDAError(cudaMalloc(&ret_buffer, ret.m_height * ret.m_width* sizeof(float)));
@@ -343,6 +366,45 @@ Mat Mat::operator-(const Mat& other) const{
     cudaFree(self_buffer);
     cudaFree(other_buffer);
     return ret;
+}
+
+Mat Mat::cpu_minus(const Mat& other) const{
+    Mat ret = Mat(this->m_height, this->m_width);
+    if (m_height == other.m_height)
+    {
+        for (int i = 0; i < this->m_height; i++) {
+            for (int j = 0; j < this->m_width; j++) {
+                ret.m_buffer[i * m_width + j] = m_buffer[i * m_width + j]
+                    - other.m_buffer[i * other.m_width + j];
+            }
+        }
+    }
+    else
+    {
+        for (int i = 0; i < this->m_height; i++) {
+            for (int j = 0; j < this->m_width; j++) {
+                ret.m_buffer[i * m_width + j] = m_buffer[i * m_width + j]
+                    - other.m_buffer[j];
+            }
+        }
+    }
+
+    return ret;
+}
+
+Mat Mat::operator-(const Mat& other) const{
+    if ((this->m_width != other.m_width) || (m_height != other.m_height && other.m_height != 1))
+    {
+        printf("Could not substract matrices, dimensions do not match {%i, %i} vs {%i, %i}",
+            this->m_height, this->m_width, other.m_height, other.m_width);
+        throw "Invalid addition";
+    }
+
+    std::size_t size = m_height * m_width;
+    if (size < GPUThreshold)
+        return cpu_minus(other);
+    else
+        return gpu_minus(other);
 }
 
 __global__ void normalize_kernel(float *A, float *I, int n, int x, bool diag){

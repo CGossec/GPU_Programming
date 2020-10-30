@@ -25,7 +25,11 @@ struct Mat
 
     void operator=(const Mat& other);
     Mat operator+(const Mat& other) const;
+    Mat cpu_plus(const Mat& other) const;
+    Mat gpu_plus(const Mat& other) const;
     Mat operator-(const Mat& other) const;
+    Mat cpu_minus(const Mat& other) const;
+    Mat gpu_minus(const Mat& other) const;
 
     Mat inverse() const;
 
