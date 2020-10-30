@@ -1,11 +1,9 @@
-CXXFLAGS=-Wall -Werror -pedantic --expt-relaxed-constexpr -g
+CXXFLAGS=--expt-relaxed-constexpr -Xptxas -O3 -use_fast_math
 
 SRC=matrices.cu main.cu icp.cu
 
-EIGEN_PATH=../eigen-3.3.8
-
 all:
-	nvcc $(SRC) -I $(EIGEN_PATH) -o main
+	nvcc $(SRC) $(CXXFLAGS) -o main
 
 clean:
 	rm $(OBJS) icp

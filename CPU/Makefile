@@ -1,5 +1,5 @@
 CXX?=g++
-CXXFLAGS=-Wall -Werror -pedantic -std=c++17 -g
+CXXFLAGS=-Wall -Werror -pedantic -std=c++17 -O3
 
 SRCS_LSTSQ=main.cc icp.cc matrices.cc
 OBJS_LSTSQ=$(subst .cc,.o,$(SRCS_LSTSQ))

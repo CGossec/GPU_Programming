@@ -58,12 +58,11 @@ int main(int argc, char const *argv[])
     Mat ref = parse_file(file2);
 
     try {
-        ref.print();
-        test.print();
+        //ref.print();
+        //test.print();
         icp res = icp(test, ref);
-        std::cerr << "Time to fix\n";
         res.fit();
-        res.get_src_transformed().print();
+        //res.get_src_transformed().print();
     } catch (const char* msg) {
         std::cerr << msg << std::endl;
     }

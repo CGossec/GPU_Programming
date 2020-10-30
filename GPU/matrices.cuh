@@ -2,7 +2,6 @@
 
 #include <iostream>
 #include <cuda.h>
-#include <Eigen/Eigenvalues>
 
 struct Mat
 {
