@@ -5,7 +5,7 @@ NVCXXFLAGS=--expt-relaxed-constexpr -Xptxas -O3 -use_fast_math
 BIN=icp
 
 CPU_SRC=CPU/main.cc CPU/icp.cc CPU/matrices.cc
-GPU_SRC=GPU/matrices.cu CPU/main.cu CPU/icp.cu
+GPU_SRC=GPU/matrices.cu GPU/main.cu GPU/icp.cu
 
 EIGEN_PATH=./eigen-3.3.8
 
