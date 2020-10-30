@@ -116,9 +116,9 @@ icp& icp::fit(int iterations, float treshold, bool force_iteration){
             break;
     }
     if (chi >= treshold)
-        std::cerr << "ICP did not converge in " << iterations << " iterations, and have a chi value of " << chi << "\n";
+        std::cerr << "ICP did not converge in " << iterations << " iterations, and has a chi value of " << chi << "\n";
     else
-        std::cerr << "ICP converge in " << i << " iterations, and have a chi value of " << chi << "\n";
+        std::cerr << "ICP converge in " << i << " iterations, and has a chi value of " << chi << "\n";
 
     return *this;
 }

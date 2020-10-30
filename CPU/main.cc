@@ -74,6 +74,5 @@ int main(int argc, char const *argv[])
         std::cerr << msg << std::endl;
     }
 
-    std::cout << "End\n";
     return 0;
 }
