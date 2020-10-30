@@ -97,7 +97,7 @@ icp::prep_sys_t icp::prepare_system(Mat& x, Mat& P, Mat& Q) const {
 }
 
 // Compute the 3 rotation matrix and the 3 translation scalars to transform src_ in ref_
-icp& icp::fit(int iterations, float treshold){
+icp& icp::fit(int iterations, float treshold, bool force_iteration){
     auto x = Mat(1,6); // 3 rotation factors + 3 translation
     float chi = 0.;
     int i = 0;
@@ -112,7 +112,7 @@ icp& icp::fit(int iterations, float treshold){
         translation_scalars_ = Mat(std::vector<float>{x[0][0], x[0][1], x[0][2]}).T();
         src_transformed_ = rotation_matrix_[0].dot(rotation_matrix_[1])
             .dot(rotation_matrix_[2]).dot(src_.T()).T() + translation_scalars_;
-        if (chi < treshold)
+        if (chi < treshold && not force_iteration)
             break;
     }
     if (chi >= treshold)

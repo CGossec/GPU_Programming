@@ -42,12 +42,21 @@ Mat parse_file(std::ifstream &file) {
 
 int main(int argc, char const *argv[])
 {
-    if (argc != 3) {
-        std::cerr << "Usage: " << argv[0] << " path/to/test/file path/to/model/file";
+    int nb_iterations = 30;
+    bool force_iteration = false;
+
+    if (argc < 3) {
+        std::cerr << "Usage: " << argv[0] << "[-it nb_iteration] path/to/test/file path/to/model/file";
         return 1;
     }
-    std::ifstream file1(argv[1]);
-    std::ifstream file2(argv[2]);
+    else if (argc == 5)
+    {
+        force_iteration = true;
+        nb_iterations = std::stoi(argv[2]);
+    }
+
+    std::ifstream file1(argv[1 + 2 * force_iteration]);
+    std::ifstream file2(argv[2 + 2 * force_iteration]);
     if (!file1 || !file2) {
         std::cerr << "couldn't open file\n";
         return 1;
@@ -55,33 +64,16 @@ int main(int argc, char const *argv[])
     Mat test = parse_file(file1);
     Mat ref = parse_file(file2);
 
-    //try {
-    //    ref.print();
-    //    test.print();
-    //    ICP_matlab res(ref, test);
-    //    res.get_p_transformed().print();
-    //} catch (const char* msg) {
-    //    std::cerr << msg << std::endl;
-    //}
-
     try {
         //ref.print();
         //test.print();
         icp res = icp(test, ref);
-        res.fit();
+        res.fit(nb_iterations, 0.0001, force_iteration);
         //res.get_src_transformed().print();
     } catch (const char* msg) {
         std::cerr << msg << std::endl;
     }
 
     std::cout << "End\n";
-
-    /*
-    Mat first = {{{1,2,3}, {7,4,5}, {11,22,33}}};
-    first.print();
-    std::vector<float> v{1,2,3,4};
-    Mat second(v);
-    second.print();
-    */
     return 0;
 }
