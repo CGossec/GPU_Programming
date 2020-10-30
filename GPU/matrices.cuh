@@ -20,6 +20,8 @@ struct Mat
     Mat cpu_dot(const Mat& other);
     Mat gpu_dot(const Mat& other);
     Mat T();
+    Mat cpu_T();
+    Mat gpu_T();
 
     void operator=(const Mat& other);
     Mat operator+(const Mat& other) const;

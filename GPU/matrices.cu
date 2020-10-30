@@ -185,7 +185,7 @@ __global__ void T_kernel(float* self, float* ret, int s_height, int s_width) {
     ret[j * s_height + i] = self[i * s_width + j];
 }
 
-Mat Mat::T() {
+Mat Mat::gpu_T() {
     Mat ret(m_width, m_height);
     float* ret_buffer;
     checkCUDAError(cudaMalloc(&ret_buffer, ret.m_height * ret.m_width * sizeof(float)));
@@ -207,6 +207,22 @@ Mat Mat::T() {
     cudaFree(ret_buffer);
     cudaFree(self_buffer);
     return ret;
+}
+
+Mat Mat::cpu_T() {
+    auto ret = Mat(m_width, m_height);
+    for (int i = 0; i < m_height; i++)
+        for (int j = 0; j < m_width; j++)
+            ret.m_buffer[j * m_height + i] = m_buffer[i * m_width + j];
+    return ret;
+}
+
+Mat Mat::T() {
+    std::size_t size = m_height * m_width;
+    if (size < GPUThreshold)
+        return cpu_T();
+    else
+        return gpu_T();
 }
 
 __global__ void add_kernel(float* self, float* other, float* ret, int s_height, int s_width) {
