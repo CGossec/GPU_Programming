@@ -17,6 +17,8 @@ struct Mat
     static Mat eye(int dim);
 
     Mat dot(const Mat& other);
+    Mat cpu_dot(const Mat& other);
+    Mat gpu_dot(const Mat& other);
     Mat T();
 
     void operator=(const Mat& other);

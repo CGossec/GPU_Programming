@@ -3,6 +3,7 @@
 #include <assert.h>
 
 #define checkCUDAError(val) { checkError((val), #val, __FILE__, __LINE__); }    // in-line regular function
+#define GPUThreshold 100
 
 void checkError(cudaError_t code, char const * func, const char *file, const int line)
 {
@@ -112,15 +113,8 @@ __global__ void dot_kernel(float* self, float* other, float* ret,
         ret[i * o_width + j] += self[i * s_width + k] * other[k * o_width + j];
 }
 
-Mat Mat::dot(const Mat& other)
+Mat Mat::gpu_dot(const Mat& other)
 {
-    if (m_width != other.m_height)
-    {
-        printf("Invalid dot product, shapes do not match {%i, %i} vs {%i, %i}",
-               m_height, m_width, other.m_height, other.m_width);
-        throw "Invalid dot product";
-    }
-
     Mat ret(m_height, other.m_width);
     float* ret_buffer;
     checkCUDAError(cudaMalloc(&ret_buffer, ret.m_height * ret.m_width* sizeof(float)));
@@ -148,6 +142,37 @@ Mat Mat::dot(const Mat& other)
     cudaFree(self_buffer);
     cudaFree(other_buffer);
     return ret;
+}
+
+Mat Mat::cpu_dot(const Mat& other)
+{
+    Mat ret = Mat(m_height, other.m_width);
+
+    for (int i = 0; i < m_height; ++i) {
+        for (int j = 0; j < other.m_width; ++j){
+            for (int k = 0; k < other.m_height; ++k) {
+                ret.m_buffer[i * ret.m_width + j] += m_buffer[i * m_width + k]
+                    * other.m_buffer[k * other.m_width + j];
+            }
+        }
+    }
+    return ret;
+}
+
+Mat Mat::dot(const Mat& other)
+{
+    if (this->m_width != other.m_height)
+    {
+        printf("Invalid dot product, shapes do not match {%i, %i} vs {%i, %i}",
+            this->m_height, this->m_width, other.m_height, other.m_width);
+        throw "Invalid dot product";
+    }
+
+    std::size_t size = m_height * other.m_width;
+    if (size < GPUThreshold)
+        return cpu_dot(other);
+    else
+        return gpu_dot(other);
 }
 
 __global__ void T_kernel(float* self, float* ret, int s_height, int s_width) {
