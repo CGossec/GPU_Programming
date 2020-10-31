@@ -60,7 +60,7 @@ for ii, test in enumerate(data):
         mean = round(sum(wall_times) / len(wall_times), 5)
         performances[mode].append(mean)
         os.system("rm time.txt icp.stderr")
-        print("{0}% of ICPs completed. Please wait a little longer.".format(round((ii * 2 + jj + 1) / (len(data) * 2) * 100), 2))
+        print("{0}% of ICPs completed. Please wait a little longer.".format(round((ii * len(modes) + jj + 1) / (len(data) * len(modes)) * 100), 2))
 df = pd.DataFrame(data=performances)
 print(df)
 fig, ax = plt.subplots(1, 1, figsize=(15,9))
