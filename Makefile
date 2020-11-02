@@ -13,15 +13,15 @@ EIGEN_PATH=./eigen-3.3.8
 all: gpu-opti
 
 cpu:
-	$(CXX) $(CXXFLAGS) -o $(BIN) -I $(EIGEN_PATH) $(CPU_SRC)
+	$(CXX) $(CXXFLAGS) -o CPU/$(BIN) -I $(EIGEN_PATH) $(CPU_SRC)
 
 gpu:
-	$(NVCXX) $(NVCXXFLAGS) -o $(BIN) $(GPU_SRC)
+	$(NVCXX) $(NVCXXFLAGS) -o GPU/$(BIN) $(GPU_SRC)
 
 gpu-opti:
-	$(NVCXX) $(NVCXXFLAGS) -o $(BIN) $(GPU_OPTI_SRC)
+	$(NVCXX) $(NVCXXFLAGS) -o GPU-opti/$(BIN) $(GPU_OPTI_SRC)
 
 clean:
-	rm CPU/*.o $(BIN)
+	rm CPU/*.o */$(BIN)
 
 .PHONY: all cpu gpu clean
