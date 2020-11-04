@@ -24,4 +24,6 @@ make -j4 gpu-opti # Compile the optimize GPU version in the GPU-opti directory
 
 ## Run
 
+```
 ./{directory-where-you-create-the-binary}/icp datatest/{cloud-points}_src datatest/{cloud-points}_tgt
+```
