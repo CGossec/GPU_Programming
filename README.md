@@ -14,7 +14,7 @@ Libraries were authorized but not encouraged, as few libraries work in CUDA.Usin
 ## Installation
 
 1. Get the eigen library with : `wget https://gitlab.com/libeigen/eigen/-/archive/3.3.8/eigen-3.3.8.zip`
-2. Unzip it at the directory root : `unzip eigen-3.3.8.zip`
+2. Unzip it in the directory root : `unzip eigen-3.3.8.zip`
 3. Compile the code and create a binary in the relevant directory:
 ```
 make -j4 cpu # compile the CPU version of the ICP in the CPU directory
